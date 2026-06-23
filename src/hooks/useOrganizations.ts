@@ -1,0 +1,80 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { organizationsService } from "@/services/organizations/organizationsService";
+import { queryKeys } from "@/lib/queryKeys";
+import { STALE_TIME } from "@/lib/queryCacheConfig";
+import type { CreateOrganizationInput, OrganizationRegistry } from "@/types";
+
+export function useOrganizations() {
+  const {
+    data: organizations = [],
+    isPending: isLoading,
+    isFetching,
+    error,
+  } = useQuery<OrganizationRegistry[]>({
+    queryKey: queryKeys.organizations(),
+    queryFn: () => organizationsService.getAll(),
+    staleTime: STALE_TIME.organizations,
+  });
+
+  return { organizations, isLoading, isFetching, error };
+}
+
+export function useOrganization(id: string) {
+  const {
+    data: organization = null,
+    isPending: isLoading,
+    error,
+  } = useQuery<OrganizationRegistry | null>({
+    queryKey: queryKeys.organization(id),
+    queryFn: () => organizationsService.getById(id),
+    enabled: !!id,
+    staleTime: STALE_TIME.organizations,
+  });
+
+  return { organization, isLoading, error };
+}
+
+export function useCreateOrganization() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateOrganizationInput) => organizationsService.create(input),
+    onSuccess: (org) => {
+      toast.success("Organization created", { description: org.organizationSlug });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations() });
+    },
+    onError: (error: Error & { code?: string }) => {
+      if (error.code === "23505") {
+        toast.error("Slug already exists", {
+          description: "An organization with this slug is already registered.",
+        });
+        return;
+      }
+      toast.error("Could not create organization", { description: error.message });
+    },
+  });
+
+  return { createOrganization: mutation.mutateAsync, isCreating: mutation.isPending };
+}
+
+export function useSetOrganizationActive() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      organizationsService.setActive(id, isActive),
+    onSuccess: (org) => {
+      toast.success(org.isActive ? "Organization activated" : "Organization deactivated", {
+        description: org.organizationSlug,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organization(org.id) });
+    },
+    onError: (error: Error) => {
+      toast.error("Could not update organization", { description: error.message });
+    },
+  });
+
+  return { setActive: mutation.mutate, isUpdating: mutation.isPending };
+}
