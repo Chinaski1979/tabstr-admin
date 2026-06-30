@@ -46,6 +46,14 @@ export interface FeatureFlag {
   updatedAt: Date;
 }
 
+export type CreateFeatureFlagInput = {
+  /** camelCase identifier used in tabstr code (e.g. digitalInvoices). */
+  featureName: string;
+  isEnabled?: boolean;
+  isPaid?: boolean;
+  planName?: string | null;
+};
+
 /**
  * A feature flag combined with whether it is active for a specific organization
  * (organization_features.active). `effectivelyEnabled` = global isEnabled && org active.

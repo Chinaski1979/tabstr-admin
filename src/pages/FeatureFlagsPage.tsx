@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
+import { CreateFeatureFlagDialog } from "@/components/featureFlags/CreateFeatureFlagDialog";
 import { useFeatureFlags, useSetGlobalFeatureFlag } from "@/hooks/useFeatureFlags";
 
 export default function FeatureFlagsPage() {
@@ -14,13 +15,18 @@ export default function FeatureFlagsPage() {
       <PageHeader
         title="Global feature flags"
         description="Master switches that apply across all organizations. A feature also has to be enabled per-organization to go live."
+        actions={<CreateFeatureFlagDialog />}
       />
       <Card>
         <CardContent className="p-0">
           {isLoading && <LoadingState />}
           {!isLoading && error && <ErrorState error={error} />}
           {!isLoading && !error && flags.length === 0 && (
-            <EmptyState title="No feature flags" description="No feature flags are defined in the registry." />
+            <EmptyState
+              title="No feature flags"
+              description="Create a feature flag to get started."
+              action={<CreateFeatureFlagDialog />}
+            />
           )}
           {!isLoading && !error && flags.length > 0 && (
             <ul className="divide-y">

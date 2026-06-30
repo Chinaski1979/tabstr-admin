@@ -119,6 +119,12 @@ create policy "feature_flags_admin_update"
   using (public.is_active_admin())
   with check (public.is_active_admin());
 
+drop policy if exists "feature_flags_admin_insert" on public.feature_flags;
+create policy "feature_flags_admin_insert"
+  on public.feature_flags for insert
+  to authenticated
+  with check (public.is_active_admin());
+
 -- 6) organization_features policies (per-org toggles) ------------------------
 drop policy if exists "org_features_admin_select" on public.organization_features;
 create policy "org_features_admin_select"

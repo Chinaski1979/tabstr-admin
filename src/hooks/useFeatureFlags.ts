@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { featureFlagsService } from "@/services/featureFlags/featureFlagsService";
 import { queryKeys } from "@/lib/queryKeys";
 import { STALE_TIME } from "@/lib/queryCacheConfig";
-import type { FeatureFlag, OrganizationFeature } from "@/types";
+import type { FeatureFlag, OrganizationFeature, CreateFeatureFlagInput } from "@/types";
 
 export function useFeatureFlags() {
   const {
@@ -40,6 +40,30 @@ export function useSetGlobalFeatureFlag() {
   });
 
   return { setGlobalEnabled: mutation.mutate, isUpdating: mutation.isPending };
+}
+
+export function useCreateFeatureFlag() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateFeatureFlagInput) => featureFlagsService.create(input),
+    onSuccess: (flag) => {
+      toast.success("Feature flag created", { description: flag.featureName });
+      queryClient.invalidateQueries({ queryKey: queryKeys.featureFlags() });
+      queryClient.invalidateQueries({ queryKey: ["organizationFeatures"] });
+    },
+    onError: (error: Error & { code?: string }) => {
+      if (error.code === "23505") {
+        toast.error("Feature name already exists", {
+          description: "Choose a different feature_name value.",
+        });
+        return;
+      }
+      toast.error("Could not create feature flag", { description: error.message });
+    },
+  });
+
+  return { createFeatureFlag: mutation.mutateAsync, isCreating: mutation.isPending };
 }
 
 export function useOrganizationFeatures(orgRegistryId: string) {

@@ -1,5 +1,5 @@
 import { getRegistryClient } from "@/integrations/supabase/client";
-import type { FeatureFlag, OrganizationFeature } from "@/types";
+import type { CreateFeatureFlagInput, FeatureFlag, OrganizationFeature } from "@/types";
 
 function mapFlag(row: any): FeatureFlag {
   return {
@@ -37,6 +37,26 @@ export const featureFlagsService = {
       .from("feature_flags")
       .update({ is_enabled: isEnabled })
       .eq("id", flagId)
+      .select(FLAG_SELECT)
+      .single();
+
+    if (error) throw error;
+    return mapFlag(data);
+  },
+
+  async create(input: CreateFeatureFlagInput): Promise<FeatureFlag> {
+    const supabase = getRegistryClient();
+    const featureName = input.featureName.trim();
+    const planName = input.planName?.trim() || null;
+
+    const { data, error } = await supabase
+      .from("feature_flags")
+      .insert({
+        feature_name: featureName,
+        is_enabled: input.isEnabled ?? false,
+        is_paid: input.isPaid ?? false,
+        plan_name: planName,
+      })
       .select(FLAG_SELECT)
       .single();
 
