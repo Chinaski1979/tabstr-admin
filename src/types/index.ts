@@ -67,8 +67,27 @@ export interface OrganizationFeature {
   effectivelyEnabled: boolean;
 }
 
+/** Must match registry `billing_interval` enum values. */
+export const BILLING_INTERVAL_OPTIONS = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "fortnightly", label: "Fortnightly" },
+  { value: "month", label: "Monthly" },
+  { value: "bi-monthly", label: "Bi-monthly" },
+  { value: "quarterly", label: "Quarterly" },
+  { value: "semi-annually", label: "Semi-annually" },
+  { value: "year", label: "Yearly" },
+] as const;
+
+export type BillingInterval = (typeof BILLING_INTERVAL_OPTIONS)[number]["value"];
+
+export function billingIntervalLabel(value: string): string {
+  return BILLING_INTERVAL_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
 export interface SubscriptionPlanPrice {
-  billingInterval: string;
+  id: string;
+  billingInterval: BillingInterval;
   planPrice: number;
   isActive: boolean;
 }
@@ -78,6 +97,18 @@ export interface SubscriptionPlan {
   planName: string;
   prices: SubscriptionPlanPrice[];
 }
+
+export type CreateSubscriptionPlanInput = {
+  planName: string;
+  prices: { billingInterval: BillingInterval; planPrice: number }[];
+  isActive?: boolean;
+};
+
+export type UpdateSubscriptionPlanInput = {
+  planName: string;
+  prices: { id?: string; billingInterval: BillingInterval; planPrice: number }[];
+  isActive?: boolean;
+};
 
 export interface OrganizationSpecialPlan {
   id: string;

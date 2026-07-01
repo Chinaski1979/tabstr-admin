@@ -84,56 +84,33 @@ create policy "admin_users_write_full_access"
   using (public.is_full_access_admin())
   with check (public.is_full_access_admin());
 
--- 4) organization_registry policies -----------------------------------------
--- Admins can read every organization and create / activate / deactivate them.
+-- 4) organization_registry ---------------------------------------------------
 drop policy if exists "org_registry_admin_select" on public.organization_registry;
-create policy "org_registry_admin_select"
-  on public.organization_registry for select
-  to authenticated
-  using (public.is_active_admin());
-
 drop policy if exists "org_registry_admin_insert" on public.organization_registry;
-create policy "org_registry_admin_insert"
-  on public.organization_registry for insert
-  to authenticated
-  with check (public.is_active_admin());
-
 drop policy if exists "org_registry_admin_update" on public.organization_registry;
-create policy "org_registry_admin_update"
-  on public.organization_registry for update
+drop policy if exists "org_registry_admin" on public.organization_registry;
+create policy "org_registry_admin"
+  on public.organization_registry for all
   to authenticated
   using (public.is_active_admin())
   with check (public.is_active_admin());
 
--- 5) feature_flags policies (global switches) --------------------------------
+-- 5) feature_flags -----------------------------------------------------------
 drop policy if exists "feature_flags_admin_select" on public.feature_flags;
-create policy "feature_flags_admin_select"
-  on public.feature_flags for select
-  to authenticated
-  using (public.is_active_admin());
-
 drop policy if exists "feature_flags_admin_update" on public.feature_flags;
-create policy "feature_flags_admin_update"
-  on public.feature_flags for update
+drop policy if exists "feature_flags_admin_insert" on public.feature_flags;
+drop policy if exists "feature_flags_admin" on public.feature_flags;
+create policy "feature_flags_admin"
+  on public.feature_flags for all
   to authenticated
   using (public.is_active_admin())
   with check (public.is_active_admin());
 
-drop policy if exists "feature_flags_admin_insert" on public.feature_flags;
-create policy "feature_flags_admin_insert"
-  on public.feature_flags for insert
-  to authenticated
-  with check (public.is_active_admin());
-
--- 6) organization_features policies (per-org toggles) ------------------------
+-- 6) organization_features ---------------------------------------------------
 drop policy if exists "org_features_admin_select" on public.organization_features;
-create policy "org_features_admin_select"
-  on public.organization_features for select
-  to authenticated
-  using (public.is_active_admin());
-
 drop policy if exists "org_features_admin_write" on public.organization_features;
-create policy "org_features_admin_write"
+drop policy if exists "org_features_admin" on public.organization_features;
+create policy "org_features_admin"
   on public.organization_features for all
   to authenticated
   using (public.is_active_admin())
@@ -153,40 +130,76 @@ begin
   end if;
 end $$;
 
--- 7) subscriptions / plans / invoices (read for admins) ----------------------
--- These tables already have SELECT policies for anon/authenticated in the POS
--- setup. The admin console only needs to READ them, so the existing policies
--- usually suffice. The statements below add admin-scoped SELECT policies in
--- case the project is locked down. They are additive (permissive) policies.
+-- 7) subscriptions / plans / invoices ----------------------------------------
+-- subscription_invoices: read-only for admins (written by PowerTranz / backend).
+
 drop policy if exists "subscriptions_admin_select" on public.subscriptions;
-create policy "subscriptions_admin_select"
-  on public.subscriptions for select
+drop policy if exists "subscriptions_admin_insert" on public.subscriptions;
+drop policy if exists "subscriptions_admin_update" on public.subscriptions;
+drop policy if exists "subscriptions_admin" on public.subscriptions;
+create policy "subscriptions_admin"
+  on public.subscriptions for all
   to authenticated
-  using (public.is_active_admin());
+  using (public.is_active_admin())
+  with check (public.is_active_admin());
 
 drop policy if exists "subscription_invoices_admin_select" on public.subscription_invoices;
-create policy "subscription_invoices_admin_select"
+drop policy if exists "subscription_invoices_admin" on public.subscription_invoices;
+create policy "subscription_invoices_admin"
   on public.subscription_invoices for select
   to authenticated
   using (public.is_active_admin());
 
 drop policy if exists "subscription_plans_admin_select" on public.subscription_plans;
-create policy "subscription_plans_admin_select"
-  on public.subscription_plans for select
+drop policy if exists "subscription_plans_admin_insert" on public.subscription_plans;
+drop policy if exists "subscription_plans_admin_update" on public.subscription_plans;
+drop policy if exists "subscription_plans_admin" on public.subscription_plans;
+create policy "subscription_plans_admin"
+  on public.subscription_plans for all
   to authenticated
-  using (public.is_active_admin());
+  using (public.is_active_admin())
+  with check (public.is_active_admin());
 
 drop policy if exists "subscription_plan_prices_admin_select" on public.subscription_plan_prices;
-create policy "subscription_plan_prices_admin_select"
-  on public.subscription_plan_prices for select
+drop policy if exists "subscription_plan_prices_admin_insert" on public.subscription_plan_prices;
+drop policy if exists "subscription_plan_prices_admin_update" on public.subscription_plan_prices;
+drop policy if exists "subscription_plan_prices_admin" on public.subscription_plan_prices;
+create policy "subscription_plan_prices_admin"
+  on public.subscription_plan_prices for all
   to authenticated
-  using (public.is_active_admin());
+  using (public.is_active_admin())
+  with check (public.is_active_admin());
 
 drop policy if exists "org_special_plans_admin_select" on public.organization_special_plans;
-create policy "org_special_plans_admin_select"
-  on public.organization_special_plans for select
+drop policy if exists "org_special_plans_admin_insert" on public.organization_special_plans;
+drop policy if exists "org_special_plans_admin_update" on public.organization_special_plans;
+drop policy if exists "org_special_plans_admin" on public.organization_special_plans;
+create policy "org_special_plans_admin"
+  on public.organization_special_plans for all
   to authenticated
-  using (public.is_active_admin());
+  using (public.is_active_admin())
+  with check (public.is_active_admin());
+
+-- 8) Data API grants (PostgREST / supabase-js) ---------------------------------
+-- RLS alone is not enough. Tables with "API DISABLED" in the dashboard lack
+-- GRANTs for anon/authenticated — PostgREST returns 403 before RLS is evaluated.
+-- The admin console uses the anon key + an authenticated JWT → role authenticated.
+
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select, insert, update, delete on public.organization_registry to authenticated;
+grant select, insert, update, delete on public.feature_flags to authenticated;
+grant select, insert, update, delete on public.organization_features to authenticated;
+grant select, insert, update, delete on public.subscription_plans to authenticated;
+grant select, insert, update, delete on public.subscription_plan_prices to authenticated;
+grant select, insert, update, delete on public.subscriptions to authenticated;
+grant select, insert, update, delete on public.organization_special_plans to authenticated;
+grant select on public.subscription_invoices to authenticated;
+grant select on public.admin_users to authenticated;
+
+-- Enum columns (billing_interval, admin_role) require USAGE on the type.
+grant usage on type public.billing_interval to authenticated;
+grant usage on type public.admin_role to authenticated;
 
 -- ============================================================================
 -- Seed an administrator

@@ -12,7 +12,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { CreateSubscriptionPlanDialog } from "@/components/subscriptions/SubscriptionPlanDialog";
+import { SubscriptionPlanCard } from "@/components/subscriptions/SubscriptionPlanCard";
+import { formatDate } from "@/lib/utils";
 import { useSubscriptionPlans, useAllSubscriptions } from "@/hooks/useSubscriptions";
 
 function statusVariant(status: string) {
@@ -36,29 +38,21 @@ export default function SubscriptionsPage() {
       />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Plan catalog</CardTitle>
-          <CardDescription>Plans defined in the registry.</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div className="flex flex-col gap-1.5">
+            <CardTitle>Plan catalog</CardTitle>
+            <CardDescription>Plans defined in the registry.</CardDescription>
+          </div>
+          <CreateSubscriptionPlanDialog />
         </CardHeader>
         <CardContent>
           {plansLoading && <LoadingState />}
-          {!plansLoading && plans.length === 0 && (
-            <p className="text-sm text-muted-foreground">No plans defined.</p>
-          )}
+
           {!plansLoading && plans.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {plans.map((plan) => {
-                const monthly = plan.prices.find((p) => p.billingInterval === "month");
-                return (
-                  <div key={plan.id} className="rounded-lg border p-4">
-                    <p className="font-medium">{plan.planName}</p>
-                    <p className="mt-1 text-2xl font-bold">
-                      {monthly ? formatCurrency(monthly.planPrice) : "—"}
-                      {monthly && <span className="text-sm font-normal text-muted-foreground">/mo</span>}
-                    </p>
-                  </div>
-                );
-              })}
+              {plans.map((plan) => (
+                <SubscriptionPlanCard key={plan.id} plan={plan} />
+              ))}
             </div>
           )}
         </CardContent>

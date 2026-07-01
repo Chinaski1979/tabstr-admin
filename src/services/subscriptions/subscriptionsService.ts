@@ -1,9 +1,11 @@
 import { getRegistryClient } from "@/integrations/supabase/client";
 import type {
+  CreateSubscriptionPlanInput,
   OrganizationSpecialPlan,
   Subscription,
   SubscriptionInvoice,
   SubscriptionPlan,
+  UpdateSubscriptionPlanInput,
 } from "@/types";
 
 function firstEmbed(value: unknown): Record<string, unknown> | null {
@@ -17,6 +19,7 @@ function mapPlan(row: any): SubscriptionPlan {
     id: row.id,
     planName: row.plan_name,
     prices: (row.subscription_plan_prices ?? []).map((p: any) => ({
+      id: p.id,
       billingInterval: p.billing_interval,
       planPrice: Number(p.plan_price ?? 0),
       isActive: p.is_active ?? false,
@@ -60,11 +63,120 @@ function mapInvoice(row: any): SubscriptionInvoice {
 }
 
 export const subscriptionsService = {
+  async create(input: CreateSubscriptionPlanInput): Promise<SubscriptionPlan> {
+    const supabase = getRegistryClient();
+    const planName = input.planName.trim();
+
+    const { data: planRow, error: planError } = await supabase
+      .from("subscription_plans")
+      .insert({ plan_name: planName })
+      .select("id, plan_name")
+      .single();
+
+    if (planError) throw planError;
+
+    const { data: priceRows, error: priceError } = await supabase
+      .from("subscription_plan_prices")
+      .insert(
+        input.prices.map((price) => ({
+          plan_id: planRow.id,
+          billing_interval: price.billingInterval,
+          plan_price: price.planPrice,
+          is_active: input.isActive ?? true,
+        })),
+      )
+      .select("billing_interval, plan_price, is_active");
+
+    if (priceError) {
+      await supabase.from("subscription_plans").delete().eq("id", planRow.id);
+      throw priceError;
+    }
+
+    return mapPlan({ ...planRow, subscription_plan_prices: priceRows ?? [] });
+  },
+
+  async update(planId: string, input: UpdateSubscriptionPlanInput): Promise<SubscriptionPlan> {
+    const supabase = getRegistryClient();
+    const planName = input.planName.trim();
+    const isActive = input.isActive ?? true;
+
+    const { data: planRow, error: planError } = await supabase
+      .from("subscription_plans")
+      .update({ plan_name: planName })
+      .eq("id", planId)
+      .select("id, plan_name")
+      .single();
+
+    if (planError) throw planError;
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("subscription_plan_prices")
+      .select("id")
+      .eq("plan_id", planId);
+
+    if (fetchError) throw fetchError;
+
+    const keptIds = new Set(input.prices.filter((p) => p.id).map((p) => p.id));
+    const toDelete = (existing ?? []).map((r) => r.id).filter((id) => !keptIds.has(id));
+
+    if (toDelete.length > 0) {
+      const { error } = await supabase
+        .from("subscription_plan_prices")
+        .delete()
+        .in("id", toDelete);
+      if (error) throw error;
+    }
+
+    for (const price of input.prices) {
+      if (price.id) {
+        const { error } = await supabase
+          .from("subscription_plan_prices")
+          .update({
+            billing_interval: price.billingInterval,
+            plan_price: price.planPrice,
+            is_active: isActive,
+          })
+          .eq("id", price.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("subscription_plan_prices").insert({
+          plan_id: planId,
+          billing_interval: price.billingInterval,
+          plan_price: price.planPrice,
+          is_active: isActive,
+        });
+        if (error) throw error;
+      }
+    }
+
+    const { data: priceRows, error: priceError } = await supabase
+      .from("subscription_plan_prices")
+      .select("id, billing_interval, plan_price, is_active")
+      .eq("plan_id", planId);
+
+    if (priceError) throw priceError;
+
+    return mapPlan({ ...planRow, subscription_plan_prices: priceRows ?? [] });
+  },
+
+  async delete(planId: string): Promise<void> {
+    const supabase = getRegistryClient();
+
+    const { error: pricesError } = await supabase
+      .from("subscription_plan_prices")
+      .delete()
+      .eq("plan_id", planId);
+    if (pricesError) throw pricesError;
+
+    const { error } = await supabase.from("subscription_plans").delete().eq("id", planId);
+    if (error) throw error;
+  },
+
   async getPlans(): Promise<SubscriptionPlan[]> {
     const supabase = getRegistryClient();
     const { data, error } = await supabase
       .from("subscription_plans")
-      .select("id, plan_name, subscription_plan_prices(billing_interval, plan_price, is_active)")
+      .select("id, plan_name, subscription_plan_prices(id, billing_interval, plan_price, is_active)")
       .order("plan_name");
 
     if (error) throw error;
