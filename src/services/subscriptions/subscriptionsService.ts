@@ -1,10 +1,12 @@
 import { getRegistryClient } from "@/integrations/supabase/client";
 import type {
+  CreateOrganizationSpecialPlanInput,
   CreateSubscriptionPlanInput,
   OrganizationSpecialPlan,
   Subscription,
   SubscriptionInvoice,
   SubscriptionPlan,
+  UpdateOrganizationSpecialPlanInput,
   UpdateSubscriptionPlanInput,
 } from "@/types";
 
@@ -46,6 +48,16 @@ function mapSubscription(row: any): Subscription {
     nextExecutionDate: row.next_execution_date ?? null,
     planName,
     createdAt: new Date(row.created_at),
+  };
+}
+
+function mapSpecialPlan(row: any): OrganizationSpecialPlan {
+  return {
+    id: row.id,
+    organizationRegistryId: row.organization_registry_id,
+    specialPlanName: row.special_plan_name,
+    specialPrice: Number(row.special_price ?? 0),
+    isActive: row.is_active ?? false,
   };
 }
 
@@ -192,14 +204,56 @@ export const subscriptionsService = {
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return null;
-    return {
-      id: data.id,
-      organizationRegistryId: data.organization_registry_id,
-      specialPlanName: data.special_plan_name,
-      specialPrice: Number(data.special_price ?? 0),
-      isActive: data.is_active ?? false,
-    };
+    return data ? mapSpecialPlan(data) : null;
+  },
+
+  async createSpecialPlan(
+    orgRegistryId: string,
+    input: CreateOrganizationSpecialPlanInput,
+  ): Promise<OrganizationSpecialPlan> {
+    const supabase = getRegistryClient();
+    const { data, error } = await supabase
+      .from("organization_special_plans")
+      .insert({
+        organization_registry_id: orgRegistryId,
+        special_plan_name: input.specialPlanName.trim(),
+        special_price: input.specialPrice,
+        is_active: input.isActive ?? true,
+      })
+      .select("id, organization_registry_id, special_plan_name, special_price, is_active")
+      .single();
+
+    if (error) throw error;
+    return mapSpecialPlan(data);
+  },
+
+  async updateSpecialPlan(
+    specialPlanId: string,
+    input: UpdateOrganizationSpecialPlanInput,
+  ): Promise<OrganizationSpecialPlan> {
+    const supabase = getRegistryClient();
+    const { data, error } = await supabase
+      .from("organization_special_plans")
+      .update({
+        special_plan_name: input.specialPlanName.trim(),
+        special_price: input.specialPrice,
+        is_active: input.isActive ?? true,
+      })
+      .eq("id", specialPlanId)
+      .select("id, organization_registry_id, special_plan_name, special_price, is_active")
+      .single();
+
+    if (error) throw error;
+    return mapSpecialPlan(data);
+  },
+
+  async deleteSpecialPlan(specialPlanId: string): Promise<void> {
+    const supabase = getRegistryClient();
+    const { error } = await supabase
+      .from("organization_special_plans")
+      .delete()
+      .eq("id", specialPlanId);
+    if (error) throw error;
   },
 
   /** Latest subscription row for an org (most recently created). */

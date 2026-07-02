@@ -4,11 +4,13 @@ import { subscriptionsService } from "@/services/subscriptions/subscriptionsServ
 import { queryKeys } from "@/lib/queryKeys";
 import { STALE_TIME } from "@/lib/queryCacheConfig";
 import type {
+  CreateOrganizationSpecialPlanInput,
   CreateSubscriptionPlanInput,
   OrganizationSpecialPlan,
   Subscription,
   SubscriptionInvoice,
   SubscriptionPlan,
+  UpdateOrganizationSpecialPlanInput,
   UpdateSubscriptionPlanInput,
 } from "@/types";
 
@@ -159,4 +161,89 @@ export function useOrganizationSpecialPlan(orgRegistryId: string) {
   });
 
   return { specialPlan, isLoading, error };
+}
+
+function invalidateSpecialPlanQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  orgRegistryId: string,
+) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.organizationSpecialPlan(orgRegistryId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.organizationSubscription(orgRegistryId) });
+  queryClient.invalidateQueries({ queryKey: ["allSubscriptions"] });
+}
+
+export function useCreateOrganizationSpecialPlan(orgRegistryId: string) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateOrganizationSpecialPlanInput) =>
+      subscriptionsService.createSpecialPlan(orgRegistryId, input),
+    onSuccess: (plan) => {
+      toast.success("Special plan created", { description: plan.specialPlanName });
+      invalidateSpecialPlanQueries(queryClient, orgRegistryId);
+    },
+    onError: (error: Error & { code?: string }) => {
+      if (error.code === "23505") {
+        toast.error("Special plan already exists", {
+          description: "This organization already has a special plan. Edit the existing one instead.",
+        });
+        return;
+      }
+      if (error.code === "42501") {
+        toast.error("Insufficient permissions", {
+          description: "Run the latest admin_setup.sql on the registry.",
+        });
+        return;
+      }
+      toast.error("Could not create special plan", { description: error.message });
+    },
+  });
+
+  return { createSpecialPlan: mutation.mutateAsync, isCreating: mutation.isPending };
+}
+
+export function useUpdateOrganizationSpecialPlan(orgRegistryId: string) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: ({
+      specialPlanId,
+      input,
+    }: {
+      specialPlanId: string;
+      input: UpdateOrganizationSpecialPlanInput;
+    }) => subscriptionsService.updateSpecialPlan(specialPlanId, input),
+    onSuccess: (plan) => {
+      toast.success("Special plan updated", { description: plan.specialPlanName });
+      invalidateSpecialPlanQueries(queryClient, orgRegistryId);
+    },
+    onError: (error: Error & { code?: string }) => {
+      toast.error("Could not update special plan", { description: error.message });
+    },
+  });
+
+  return { updateSpecialPlan: mutation.mutateAsync, isUpdating: mutation.isPending };
+}
+
+export function useDeleteOrganizationSpecialPlan(orgRegistryId: string) {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (specialPlanId: string) => subscriptionsService.deleteSpecialPlan(specialPlanId),
+    onSuccess: () => {
+      toast.success("Special plan deleted");
+      invalidateSpecialPlanQueries(queryClient, orgRegistryId);
+    },
+    onError: (error: Error & { code?: string }) => {
+      if (error.code === "23503") {
+        toast.error("Cannot delete special plan", {
+          description: "An active subscription is linked to this plan.",
+        });
+        return;
+      }
+      toast.error("Could not delete special plan", { description: error.message });
+    },
+  });
+
+  return { deleteSpecialPlan: mutation.mutateAsync, isDeleting: mutation.isPending };
 }

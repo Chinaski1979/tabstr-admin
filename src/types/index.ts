@@ -118,6 +118,18 @@ export interface OrganizationSpecialPlan {
   isActive: boolean;
 }
 
+export type CreateOrganizationSpecialPlanInput = {
+  specialPlanName: string;
+  specialPrice: number;
+  isActive?: boolean;
+};
+
+export type UpdateOrganizationSpecialPlanInput = {
+  specialPlanName: string;
+  specialPrice: number;
+  isActive?: boolean;
+};
+
 export interface Subscription {
   id: string;
   organizationRegistryId: string;

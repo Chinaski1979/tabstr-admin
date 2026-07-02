@@ -118,9 +118,9 @@ export function SubscriptionPlanFormFields({
 
       <div className="flex items-center justify-between rounded-md border px-4 py-3">
         <div className="flex flex-col gap-0.5">
-          <Label htmlFor={`${formId}-isActive`}>Active prices</Label>
+          <Label htmlFor={`${formId}-isActive`}>Active</Label>
           <span className="text-xs text-muted-foreground">
-            When off, these prices are hidden from checkout flows.
+            When off, this plan is not offered as an option in the POS.
           </span>
         </div>
         <Switch
