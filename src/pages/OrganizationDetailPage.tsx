@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FullPageLoader, ErrorState, EmptyState } from "@/components/common/StateViews";
 import { OrganizationStatusToggle } from "@/components/organizations/OrganizationStatusToggle";
 import { OrganizationFeaturesCard } from "@/components/organizations/OrganizationFeaturesCard";
+import { OrganizationSpecialPlanCard } from "@/components/organizations/specialPlan/OrganizationSpecialPlanCard";
 import { OrganizationSubscriptionCard } from "@/components/organizations/OrganizationSubscriptionCard";
 import { useOrganization } from "@/hooks/useOrganizations";
 import { formatDate } from "@/lib/utils";
@@ -61,7 +62,6 @@ export default function OrganizationDetailPage() {
           </Detail>
         </CardContent>
       </Card>
-
       <Tabs defaultValue="features">
         <TabsList>
           <TabsTrigger value="features">Feature flags</TabsTrigger>
@@ -74,6 +74,7 @@ export default function OrganizationDetailPage() {
           <OrganizationSubscriptionCard orgRegistryId={organization.id} />
         </TabsContent>
       </Tabs>
+      <OrganizationSpecialPlanCard orgRegistryId={organization.id} />
     </div>
   );
 }
