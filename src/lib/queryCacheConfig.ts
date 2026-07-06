@@ -21,4 +21,5 @@ export const STALE_TIME = {
   subscriptionPlans: 10 * MIN,
   subscriptions: 1 * MIN,
   invoices: 1 * MIN,
+  organizationMembers: 1 * MIN,
 } as const;

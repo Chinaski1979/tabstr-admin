@@ -38,6 +38,22 @@ export function getSharedProject(id: string): SharedSupabaseProject | undefined 
   return SHARED_SUPABASE_PROJECTS.find((p) => p.id === id);
 }
 
+export function findSharedProjectByUrl(supabaseUrl: string): SharedSupabaseProject | undefined {
+  const normalized = supabaseUrl.trim().replace(/\/+$/, '');
+  return SHARED_SUPABASE_PROJECTS.find(
+    (p) => p.supabaseUrl.trim().replace(/\/+$/, '') === normalized,
+  );
+}
+
+/** Resolves the service role key for an org DB URL (must match a shared project). */
+export function resolveOrgServiceKey(supabaseUrl: string): string {
+  const project = findSharedProjectByUrl(supabaseUrl);
+  if (!project) {
+    throw new Error('This organization is not on a configured shared project');
+  }
+  return resolveSharedProjectCredentials(project.id).supabaseServiceKey;
+}
+
 export function resolveSharedProjectCredentials(projectId: string): {
   supabaseUrl: string;
   supabaseAnonKey: string;
