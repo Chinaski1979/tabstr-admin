@@ -27,13 +27,6 @@ export interface OrganizationRegistry {
   updatedAt: Date;
 }
 
-export type CreateOrganizationInput = {
-  organizationSlug: string;
-  supabaseUrl: string;
-  supabaseAnonKey: string;
-  isActive?: boolean;
-};
-
 /** A global feature flag definition (feature_flags table). */
 export interface FeatureFlag {
   id: string;
@@ -111,4 +104,55 @@ export interface SubscriptionInvoice {
   powertranzTransactionId: string | null;
   processedAt: string | null;
   createdAt: Date;
+}
+
+// Organization provisioning types
+
+/**
+ * Input payload for provisioning a new organization.
+ * Used by scripts/provision-org.ts to create a complete organization setup.
+ */
+export interface ProvisionOrganizationInput {
+  // Usuario admin
+  email: string;
+  password: string;
+  fullName: string;
+  
+  // Organización
+  organizationName: string;
+  organizationSlug: string;
+  
+  // Base de datos
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  supabaseServiceKey: string;
+  
+  // Opciones
+  skipMigrations?: boolean;
+}
+
+/**
+ * Result of provisioning operation.
+ * Returned by OrganizationProvisioner.provision().
+ */
+export interface ProvisionResult {
+  success: boolean;
+  organizationId?: string;
+  organizationSlug?: string;
+  registryId?: string;
+  adminUserId?: string;
+  error?: string;
+  errorCode?: string;
+}
+
+/**
+ * Result of migrating a single organization.
+ * Used in migration reports.
+ */
+export interface MigrationResult {
+  organizationSlug: string;
+  success: boolean;
+  appliedMigrations: string[];
+  errors: string[];
+  duration: number;
 }

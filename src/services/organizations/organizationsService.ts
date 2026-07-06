@@ -1,5 +1,5 @@
 import { getRegistryClient } from "@/integrations/supabase/client";
-import type { CreateOrganizationInput, OrganizationRegistry } from "@/types";
+import type { OrganizationRegistry } from "@/types";
 
 function mapRow(row: any): OrganizationRegistry {
   return {
@@ -38,23 +38,6 @@ export const organizationsService = {
 
     if (error) throw error;
     return data ? mapRow(data) : null;
-  },
-
-  async create(input: CreateOrganizationInput): Promise<OrganizationRegistry> {
-    const supabase = getRegistryClient();
-    const { data, error } = await supabase
-      .from("organization_registry")
-      .insert({
-        organization_slug: input.organizationSlug.trim(),
-        supabase_url: input.supabaseUrl.trim(),
-        supabase_anon_key: input.supabaseAnonKey.trim(),
-        is_active: input.isActive ?? true,
-      })
-      .select(SELECT)
-      .single();
-
-    if (error) throw error;
-    return mapRow(data);
   },
 
   async setActive(id: string, isActive: boolean): Promise<OrganizationRegistry> {

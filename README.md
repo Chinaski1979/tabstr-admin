@@ -92,6 +92,118 @@ A signed-in Supabase user only becomes an admin once an **active** `admin_users`
 | `npm run typecheck` | Type-check only |
 | `npm run lint` | ESLint |
 | `npm run test` | Run tests (Vitest) |
+| `npm run migrate` | Run database migrations on all active organizations |
+| `npm run provision-org` | Provision a new organization (interactive wizard) |
+
+## Organization Provisioning
+
+This project includes CLI tools for provisioning complete organizations with database migrations, admin users, and default data.
+
+### Provisioning a New Organization
+
+The provisioning system supports two modes:
+
+1. **New project (with migrations)**: Applies all 28 SQL migrations to set up a complete Tabstr database schema
+2. **Existing project**: Skips migrations, only registers the org and sets up admin user + default data
+
+#### Interactive Mode
+
+```bash
+npm run provision-org
+```
+
+You'll be prompted for:
+- **Admin user**: email, password, full name
+- **Organization**: name and slug (auto-generated from name)
+- **Database**: Supabase URL, anon key, service role key
+- **Mode**: whether to skip migrations (for existing projects)
+
+#### Non-Interactive Mode
+
+```bash
+npm run provision-org -- \
+  --email admin@example.com \
+  --password secret123 \
+  --full-name "Admin User" \
+  --org-name "Mi Restaurant" \
+  --slug mi-restaurant \
+  --supabase-url https://xxx.supabase.co \
+  --anon-key eyJ... \
+  --service-key eyJ... \
+  --skip-migrations  # optional, for existing projects
+```
+
+#### Prerequisites for New Projects
+
+Before provisioning a new project, you must create the `exec_sql` function in the target Supabase project. Run this SQL in the SQL Editor:
+
+```sql
+CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  EXECUTE sql;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.exec_sql(text) TO service_role;
+```
+
+Or use the template: [`scripts/templates/exec_sql.sql`](scripts/templates/exec_sql.sql)
+
+The function is automatically dropped after provisioning for security.
+
+### Migrating Existing Organizations
+
+To apply schema changes to all active organizations:
+
+```bash
+npm run migrate
+```
+
+To migrate specific organizations:
+
+```bash
+npm run migrate -- --target-organizations=org1,org2,org3
+```
+
+To preview changes without applying them:
+
+```bash
+npm run migrate -- --dry-run
+```
+
+#### Configuration
+
+Add service role keys to `.env.local` (not committed):
+
+```bash
+# Registry service role (for scripts to list orgs)
+REGISTRY_SERVICE_ROLE_KEY=your_registry_service_role_key
+
+# Organization service keys (format: SERVICE_KEY_<SLUG_UPPERCASE>)
+SERVICE_KEY_MI_RESTAURANT=eyJ...
+SERVICE_KEY_OTRO_CLIENTE=eyJ...
+```
+
+The migration system:
+- Tracks applied migrations in a `migration_history` table in each org DB
+- Only applies migrations that haven't been run yet
+- Generates detailed reports in `migration-reports/`
+- Supports dry-run mode for preview
+
+### Error Handling
+
+The provisioning system provides detailed error messages for common issues:
+
+- **Slug already exists**: The system will suggest alternatives
+- **exec_sql not found**: Shows the exact SQL to create the function
+- **Migration failures**: Logs which migration failed and why
+- **Credential mismatches**: Validates that URL, anon key, and service key match
+
+See the [Organization Provisioning System plan](.cursor/plans/) for complete technical details.
 
 ## Security notes
 
