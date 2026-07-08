@@ -8,6 +8,14 @@ import type {
 const SELECT =
   "id, organization_registry_id, message_text, expires_at, is_active, is_urgent, is_dismissible, created_by, created_at, updated_at";
 
+function assertNonEmptyMessageText(messageText: string): string {
+  const trimmed = messageText.trim();
+  if (!trimmed) {
+    throw new Error("Message text cannot be empty");
+  }
+  return trimmed;
+}
+
 function mapRow(row: Record<string, unknown>): PlatformMessage {
   return {
     id: row.id as string,
@@ -53,11 +61,12 @@ export const platformMessagesService = {
     createdBy: string,
   ): Promise<PlatformMessage> {
     const supabase = getRegistryClient();
+    const messageText = assertNonEmptyMessageText(input.messageText);
     const { data, error } = await supabase
       .from("platform_messages")
       .insert({
         organization_registry_id: input.organizationRegistryId ?? null,
-        message_text: input.messageText.trim(),
+        message_text: messageText,
         expires_at: input.expiresAt.toISOString(),
         is_active: input.isActive ?? true,
         is_urgent: input.isUrgent ?? false,
@@ -73,10 +82,11 @@ export const platformMessagesService = {
 
   async update(messageId: string, input: UpdatePlatformMessageInput): Promise<PlatformMessage> {
     const supabase = getRegistryClient();
+    const messageText = assertNonEmptyMessageText(input.messageText);
     const { data, error } = await supabase
       .from("platform_messages")
       .update({
-        message_text: input.messageText.trim(),
+        message_text: messageText,
         expires_at: input.expiresAt.toISOString(),
         is_active: input.isActive,
         is_urgent: input.isUrgent,
