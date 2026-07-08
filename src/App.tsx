@@ -7,6 +7,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import OrganizationsPage from "@/pages/OrganizationsPage";
 import OrganizationDetailPage from "@/pages/OrganizationDetailPage";
 import FeatureFlagsPage from "@/pages/FeatureFlagsPage";
+import PlatformMessagesPage from "@/pages/PlatformMessagesPage";
 import SubscriptionsPage from "@/pages/SubscriptionsPage";
 import RevenuePage from "@/pages/RevenuePage";
 import AdminsPage from "@/pages/AdminsPage";
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="organizations" element={<OrganizationsPage />} />
             <Route path="organizations/:id" element={<OrganizationDetailPage />} />
             <Route path="feature-flags" element={<FeatureFlagsPage />} />
+            <Route path="platform-messages" element={<PlatformMessagesPage />} />
             <Route path="subscriptions" element={<SubscriptionsPage />} />
           </Route>
         </Route>

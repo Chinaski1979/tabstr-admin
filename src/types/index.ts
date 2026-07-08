@@ -155,3 +155,36 @@ export interface SubscriptionInvoice {
   processedAt: string | null;
   createdAt: Date;
 }
+
+/** A platform broadcast message shown in the POS header (platform_messages table). */
+export interface PlatformMessage {
+  id: string;
+  /** null = global (all organizations) */
+  organizationRegistryId: string | null;
+  messageText: string;
+  expiresAt: Date;
+  isActive: boolean;
+  isUrgent: boolean;
+  isDismissible: boolean;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CreatePlatformMessageInput = {
+  messageText: string;
+  expiresAt: Date;
+  isActive?: boolean;
+  isUrgent?: boolean;
+  isDismissible?: boolean;
+  /** Omit or null for global messages */
+  organizationRegistryId?: string | null;
+};
+
+export type UpdatePlatformMessageInput = {
+  messageText: string;
+  expiresAt: Date;
+  isActive: boolean;
+  isUrgent: boolean;
+  isDismissible: boolean;
+};

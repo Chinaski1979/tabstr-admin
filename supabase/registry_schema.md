@@ -48,6 +48,20 @@ Note: subscription tables use `organization_registry_id`; only `organization_fea
 
 `id` (→ auth.users), `email`, `role`, `is_active`, `created_at`
 
+### `platform_messages` (created by `platform_messages.sql`)
+
+| Column | Type | Notes |
+|--------|------|--------|
+| `id` | uuid | PK |
+| `organization_registry_id` | uuid | FK → `organization_registry.id`; **NULL = global** |
+| `message_text` | text | Banner text |
+| `expires_at` | timestamptz | Auto-hide after this time |
+| `is_active` | boolean | Admin toggle |
+| `is_urgent` | boolean | Red styling in POS |
+| `is_dismissible` | boolean | When false, POS users cannot dismiss |
+| `created_by` | uuid | FK → auth.users |
+| `created_at` / `updated_at` | timestamptz | |
+
 ## If something fails at runtime
 
 Run `supabase/introspect_registry.sql` on the registry and update this file + the affected service.
