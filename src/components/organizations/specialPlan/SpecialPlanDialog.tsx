@@ -23,8 +23,11 @@ import { SpecialPlanDeleteDialog } from "./SpecialPlanDeleteDialog";
 import { SpecialPlanFormFields } from "./SpecialPlanFormFields";
 import {
   defaultFormValues,
+  featureRowsFromPlan,
+  newFeatureRow,
   specialPlanFormSchema,
   specialPlanInputFromForm,
+  type FeatureRow,
   type SpecialPlanFormValues,
 } from "./specialPlanForm";
 
@@ -39,6 +42,7 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
   const isEdit = !!plan;
   const formId = plan?.id ?? "new-special-plan";
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [featureRows, setFeatureRows] = useState<FeatureRow[]>(() => featureRowsFromPlan(plan));
 
   const { createSpecialPlan, isCreating } = useCreateOrganizationSpecialPlan(orgRegistryId);
   const { updateSpecialPlan, isUpdating } = useUpdateOrganizationSpecialPlan(orgRegistryId);
@@ -61,6 +65,7 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
 
   const resetForm = useCallback(() => {
     reset(defaultFormValues(plan));
+    setFeatureRows(featureRowsFromPlan(plan));
   }, [plan, reset]);
 
   useEffect(() => {
@@ -68,8 +73,16 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
     resetForm();
   }, [open, resetForm]);
 
+  const updateFeature = (key: string, text: string) => {
+    setFeatureRows((prev) => prev.map((row) => (row.key === key ? { ...row, text } : row)));
+  };
+
+  const removeFeature = (key: string) => {
+    setFeatureRows((prev) => (prev.length <= 1 ? prev : prev.filter((row) => row.key !== key)));
+  };
+
   const onSubmit = async (values: SpecialPlanFormValues) => {
-    const input = specialPlanInputFromForm(values);
+    const input = specialPlanInputFromForm(values, featureRows);
 
     try {
       if (isEdit) {
@@ -108,8 +121,8 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
             <DialogTitle>{isEdit ? "Edit special plan" : "Create special plan"}</DialogTitle>
             <DialogDescription>
               {isEdit
-                ? "Update the custom plan and price for this organization."
-                : "Define a custom plan and price assigned exclusively to this organization."}
+                ? "Update the custom plan, price, and features for this organization."
+                : "Define a custom plan, price, and features assigned exclusively to this organization."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -119,6 +132,10 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
               errors={errors}
               isActive={isActive}
               setValue={setValue}
+              featureRows={featureRows}
+              onUpdateFeature={updateFeature}
+              onRemoveFeature={removeFeature}
+              onAddFeature={() => setFeatureRows((prev) => [...prev, newFeatureRow()])}
             />
             <DialogFooter className={isEdit ? "gap-2 sm:justify-between" : undefined}>
               {isEdit && (
