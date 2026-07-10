@@ -36,6 +36,11 @@ export function OrganizationFeaturesCard({ orgRegistryId }: { orgRegistryId: str
                     )}
                     {feature.effectivelyEnabled && <Badge variant="success">Live</Badge>}
                   </div>
+                  {feature.flag.description && (
+                    <span className="text-xs text-muted-foreground">
+                      {feature.flag.description}
+                    </span>
+                  )}
                   {feature.flag.planName && (
                     <span className="text-xs text-muted-foreground">
                       Plan: {feature.flag.planName}
