@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
-import { CreateFeatureFlagDialog } from "@/components/featureFlags/CreateFeatureFlagDialog";
+import { FeatureFlagDialog } from "@/components/featureFlags/FeatureFlagDialog";
 import { useFeatureFlags, useSetGlobalFeatureFlag } from "@/hooks/useFeatureFlags";
 
 export default function FeatureFlagsPage() {
@@ -15,7 +15,7 @@ export default function FeatureFlagsPage() {
       <PageHeader
         title="Global feature flags"
         description="Master switches that apply across all organizations. A feature also has to be enabled per-organization to go live."
-        actions={<CreateFeatureFlagDialog />}
+        actions={<FeatureFlagDialog />}
       />
       <Card>
         <CardContent className="p-0">
@@ -25,33 +25,59 @@ export default function FeatureFlagsPage() {
             <EmptyState
               title="No feature flags"
               description="Create a feature flag to get started."
-              action={<CreateFeatureFlagDialog />}
+              action={<FeatureFlagDialog />}
             />
           )}
           {!isLoading && !error && flags.length > 0 && (
-            <ul className="divide-y">
-              {flags.map((flag) => (
-                <li key={flag.id} className="flex items-center justify-between px-6 py-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{flag.featureName}</span>
-                      {flag.isPaid && <Badge variant="outline">Paid</Badge>}
-                      {flag.planName && <Badge variant="secondary">{flag.planName}</Badge>}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {flag.isEnabled ? "Enabled globally" : "Disabled globally"}
-                    </span>
-                  </div>
-                  <Switch
-                    checked={flag.isEnabled}
-                    disabled={isUpdating}
-                    onCheckedChange={(checked) =>
-                      setGlobalEnabled({ flagId: flag.id, isEnabled: checked })
-                    }
-                  />
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="px-6 py-3 font-medium">Feature</th>
+                    <th className="px-6 py-3 font-medium">Description</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {flags.map((flag) => (
+                    <tr key={flag.id}>
+                      <td className="px-6 py-4 align-top">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{flag.featureName}</span>
+                            {flag.isPaid && <Badge variant="outline">Paid</Badge>}
+                            {flag.planName && (
+                              <Badge variant="secondary">{flag.planName}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="max-w-md px-6 py-4 align-top text-muted-foreground">
+                        {flag.description || "—"}
+                      </td>
+                      <td className="px-6 py-4 align-top">
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={flag.isEnabled}
+                            disabled={isUpdating}
+                            onCheckedChange={(checked) =>
+                              setGlobalEnabled({ flagId: flag.id, isEnabled: checked })
+                            }
+                          />
+                          <span className="text-xs text-muted-foreground">
+                            {flag.isEnabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 align-top text-right">
+                        <FeatureFlagDialog flag={flag} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

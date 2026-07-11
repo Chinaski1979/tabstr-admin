@@ -30,7 +30,7 @@ Documented in tabstr `MULTI_DB.md` and used by `RegistryClient`:
 
 Read by tabstr `featureFlagsService` (no CREATE TABLE in tabstr repo):
 
-`id`, `feature_name`, `is_enabled`, `is_paid`, `plan_name`, `created_at`, `updated_at`
+`id`, `feature_name`, `description`, `is_enabled`, `is_paid`, `plan_name`, `created_at`, `updated_at`
 
 ### Subscription tables
 
