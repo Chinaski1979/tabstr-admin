@@ -180,7 +180,25 @@ create policy "org_special_plans_admin"
   using (public.is_active_admin())
   with check (public.is_active_admin());
 
--- 8) Data API grants (PostgREST / supabase-js) ---------------------------------
+-- 8) platform_messages -------------------------------------------------------
+-- Broadcast messages from tabstr-admin → shown in the POS header.
+-- Run supabase/platform_messages.sql first to create the table.
+
+drop policy if exists "platform_messages_admin" on public.platform_messages;
+create policy "platform_messages_admin"
+  on public.platform_messages for all
+  to authenticated
+  using (public.is_active_admin())
+  with check (public.is_active_admin());
+
+-- POS clients read active messages via the registry anon key (no admin session).
+drop policy if exists "platform_messages_read_active" on public.platform_messages;
+create policy "platform_messages_read_active"
+  on public.platform_messages for select
+  to anon, authenticated
+  using (is_active = true and expires_at > now());
+
+-- 9) Data API grants (PostgREST / supabase-js) ---------------------------------
 -- RLS alone is not enough. Tables with "API DISABLED" in the dashboard lack
 -- GRANTs for anon/authenticated — PostgREST returns 403 before RLS is evaluated.
 -- The admin console uses the anon key + an authenticated JWT → role authenticated.
@@ -196,6 +214,8 @@ grant select, insert, update, delete on public.subscriptions to authenticated;
 grant select, insert, update, delete on public.organization_special_plans to authenticated;
 grant select on public.subscription_invoices to authenticated;
 grant select on public.admin_users to authenticated;
+grant select, insert, update, delete on public.platform_messages to authenticated;
+grant select on public.platform_messages to anon;
 
 -- Enum columns (billing_interval, admin_role) require USAGE on the type.
 grant usage on type public.billing_interval to authenticated;

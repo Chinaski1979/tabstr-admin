@@ -43,6 +43,13 @@ export function SubscriptionPlanCard({ plan }: SubscriptionPlanCardProps) {
             </li>
           ))}
         </ul>
+        {plan.features.length > 0 && (
+          <ul className="mt-3 space-y-1 border-t pt-3 text-sm text-muted-foreground">
+            {plan.features.map((feature) => (
+              <li key={feature}>{feature}</li>
+            ))}
+          </ul>
+        )}
       </div>
       <SubscriptionPlanDialog plan={plan} open={editOpen} onOpenChange={setEditOpen} />
     </>

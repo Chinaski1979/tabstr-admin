@@ -31,6 +31,8 @@ export interface OrganizationRegistry {
 export interface FeatureFlag {
   id: string;
   featureName: string;
+  /** Short explanation of what the flag controls. */
+  description: string | null;
   /** Global master switch — when false the feature is off for everyone. */
   isEnabled: boolean;
   isPaid: boolean;
@@ -42,7 +44,14 @@ export interface FeatureFlag {
 export type CreateFeatureFlagInput = {
   /** camelCase identifier used in tabstr code (e.g. digitalInvoices). */
   featureName: string;
+  description?: string | null;
   isEnabled?: boolean;
+  isPaid?: boolean;
+  planName?: string | null;
+};
+
+export type UpdateFeatureFlagInput = {
+  description?: string | null;
   isPaid?: boolean;
   planName?: string | null;
 };
@@ -88,18 +97,21 @@ export interface SubscriptionPlanPrice {
 export interface SubscriptionPlan {
   id: string;
   planName: string;
+  features: string[];
   prices: SubscriptionPlanPrice[];
 }
 
 export type CreateSubscriptionPlanInput = {
   planName: string;
   prices: { billingInterval: BillingInterval; planPrice: number }[];
+  features?: string[];
   isActive?: boolean;
 };
 
 export type UpdateSubscriptionPlanInput = {
   planName: string;
   prices: { id?: string; billingInterval: BillingInterval; planPrice: number }[];
+  features?: string[];
   isActive?: boolean;
 };
 
@@ -109,17 +121,20 @@ export interface OrganizationSpecialPlan {
   specialPlanName: string;
   specialPrice: number;
   isActive: boolean;
+  features: string[];
 }
 
 export type CreateOrganizationSpecialPlanInput = {
   specialPlanName: string;
   specialPrice: number;
+  features?: string[];
   isActive?: boolean;
 };
 
 export type UpdateOrganizationSpecialPlanInput = {
   specialPlanName: string;
   specialPrice: number;
+  features?: string[];
   isActive?: boolean;
 };
 
@@ -199,3 +214,35 @@ export interface MigrationResult {
   errors: string[];
   duration: number;
 }
+/** A platform broadcast message shown in the POS header (platform_messages table). */
+export interface PlatformMessage {
+  id: string;
+  /** null = global (all organizations) */
+  organizationRegistryId: string | null;
+  messageText: string;
+  expiresAt: Date;
+  isActive: boolean;
+  isUrgent: boolean;
+  isDismissible: boolean;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type CreatePlatformMessageInput = {
+  messageText: string;
+  expiresAt: Date;
+  isActive?: boolean;
+  isUrgent?: boolean;
+  isDismissible?: boolean;
+  /** Omit or null for global messages */
+  organizationRegistryId?: string | null;
+};
+
+export type UpdatePlatformMessageInput = {
+  messageText: string;
+  expiresAt: Date;
+  isActive: boolean;
+  isUrgent: boolean;
+  isDismissible: boolean;
+};
