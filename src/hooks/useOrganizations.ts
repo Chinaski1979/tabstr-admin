@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { organizationsService } from "@/services/organizations/organizationsService";
 import { queryKeys } from "@/lib/queryKeys";
 import { STALE_TIME } from "@/lib/queryCacheConfig";
-import type { CreateOrganizationInput, OrganizationRegistry } from "@/types";
+import type { OrganizationRegistry } from "@/types";
 
 export function useOrganizations() {
   const {
@@ -33,29 +33,6 @@ export function useOrganization(id: string) {
   });
 
   return { organization, isLoading, error };
-}
-
-export function useCreateOrganization() {
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    mutationFn: (input: CreateOrganizationInput) => organizationsService.create(input),
-    onSuccess: (org) => {
-      toast.success("Organization created", { description: org.organizationSlug });
-      queryClient.invalidateQueries({ queryKey: queryKeys.organizations() });
-    },
-    onError: (error: Error & { code?: string }) => {
-      if (error.code === "23505") {
-        toast.error("Slug already exists", {
-          description: "An organization with this slug is already registered.",
-        });
-        return;
-      }
-      toast.error("Could not create organization", { description: error.message });
-    },
-  });
-
-  return { createOrganization: mutation.mutateAsync, isCreating: mutation.isPending };
 }
 
 export function useSetOrganizationActive() {

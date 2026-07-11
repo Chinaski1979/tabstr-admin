@@ -30,3 +30,6 @@ tsconfig.app.tsbuildinfo
 
 # Test coverage
 coverage
+
+# Migration reports
+migration-reports/
