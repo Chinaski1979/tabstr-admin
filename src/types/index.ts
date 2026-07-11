@@ -95,18 +95,21 @@ export interface SubscriptionPlanPrice {
 export interface SubscriptionPlan {
   id: string;
   planName: string;
+  features: string[];
   prices: SubscriptionPlanPrice[];
 }
 
 export type CreateSubscriptionPlanInput = {
   planName: string;
   prices: { billingInterval: BillingInterval; planPrice: number }[];
+  features?: string[];
   isActive?: boolean;
 };
 
 export type UpdateSubscriptionPlanInput = {
   planName: string;
   prices: { id?: string; billingInterval: BillingInterval; planPrice: number }[];
+  features?: string[];
   isActive?: boolean;
 };
 
@@ -116,17 +119,20 @@ export interface OrganizationSpecialPlan {
   specialPlanName: string;
   specialPrice: number;
   isActive: boolean;
+  features: string[];
 }
 
 export type CreateOrganizationSpecialPlanInput = {
   specialPlanName: string;
   specialPrice: number;
+  features?: string[];
   isActive?: boolean;
 };
 
 export type UpdateOrganizationSpecialPlanInput = {
   specialPlanName: string;
   specialPrice: number;
+  features?: string[];
   isActive?: boolean;
 };
 

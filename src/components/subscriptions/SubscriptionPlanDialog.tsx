@@ -34,10 +34,14 @@ import { BILLING_INTERVAL_OPTIONS } from "@/types";
 import { SubscriptionPlanFormFields } from "./SubscriptionPlanFormFields";
 import {
   defaultIsActive,
+  featureRowsFromPlan,
+  newFeatureRow,
   newPriceRow,
+  parseFeatureRows,
   parsePriceRows,
   planFormSchema,
   priceRowsFromPlan,
+  type FeatureRow,
   type PlanFormValues,
   type PriceRow,
 } from "./subscriptionPlanForm";
@@ -61,6 +65,7 @@ export function SubscriptionPlanDialog({
   const [priceRows, setPriceRows] = useState<PriceRow[]>(() =>
     plan ? priceRowsFromPlan(plan) : [newPriceRow()],
   );
+  const [featureRows, setFeatureRows] = useState<FeatureRow[]>(() => featureRowsFromPlan(plan));
   const [intervalsError, setIntervalsError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -87,6 +92,7 @@ export function SubscriptionPlanDialog({
   const resetForm = useCallback(() => {
     reset({ planName: plan?.planName ?? "", isActive: defaultIsActive(plan) });
     setPriceRows(plan ? priceRowsFromPlan(plan) : [newPriceRow()]);
+    setFeatureRows(featureRowsFromPlan(plan));
     setIntervalsError(null);
   }, [plan, reset]);
 
@@ -110,6 +116,14 @@ export function SubscriptionPlanDialog({
     setPriceRows((prev) => (prev.length <= 1 ? prev : prev.filter((row) => row.key !== key)));
   };
 
+  const updateFeature = (key: string, text: string) => {
+    setFeatureRows((prev) => prev.map((row) => (row.key === key ? { ...row, text } : row)));
+  };
+
+  const removeFeature = (key: string) => {
+    setFeatureRows((prev) => (prev.length <= 1 ? prev : prev.filter((row) => row.key !== key)));
+  };
+
   const onSubmit = async (values: PlanFormValues) => {
     const parsed = parsePriceRows(priceRows);
     if (parsed.ok === false) {
@@ -117,6 +131,7 @@ export function SubscriptionPlanDialog({
       return;
     }
     setIntervalsError(null);
+    const features = parseFeatureRows(featureRows);
 
     try {
       if (isEdit) {
@@ -125,6 +140,7 @@ export function SubscriptionPlanDialog({
           input: {
             planName: values.planName.trim(),
             prices: parsed.prices,
+            features,
             isActive: values.isActive,
           },
         });
@@ -132,6 +148,7 @@ export function SubscriptionPlanDialog({
         await createSubscriptionPlan({
           planName: values.planName.trim(),
           prices: parsed.prices,
+          features,
           isActive: values.isActive,
         });
       }
@@ -169,8 +186,8 @@ export function SubscriptionPlanDialog({
             </DialogTitle>
             <DialogDescription>
               {isEdit
-                ? "Update the plan name, prices, or billing intervals."
-                : "Pick billing intervals and set a price for each. Add only the ones this plan needs."}
+                ? "Update the plan name, prices, features, or billing intervals."
+                : "Pick billing intervals, set prices, and list the features shown on the plan card."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -187,6 +204,10 @@ export function SubscriptionPlanDialog({
               onUpdateRow={updateRow}
               onRemoveRow={removeRow}
               onAddRow={() => setPriceRows((prev) => [...prev, newPriceRow()])}
+              featureRows={featureRows}
+              onUpdateFeature={updateFeature}
+              onRemoveFeature={removeFeature}
+              onAddFeature={() => setFeatureRows((prev) => [...prev, newFeatureRow()])}
             />
             <DialogFooter className={isEdit ? "gap-2 sm:justify-between" : undefined}>
               {isEdit && (

@@ -9,6 +9,11 @@ export type PriceRow = {
   price: string;
 };
 
+export type FeatureRow = {
+  key: string;
+  text: string;
+};
+
 export type PlanPriceInput = {
   id?: string;
   billingInterval: BillingInterval;
@@ -26,6 +31,10 @@ export function newPriceRow(): PriceRow {
   return { key: crypto.randomUUID(), interval: "", price: "" };
 }
 
+export function newFeatureRow(text = ""): FeatureRow {
+  return { key: crypto.randomUUID(), text };
+}
+
 export function priceRowsFromPlan(plan: SubscriptionPlan): PriceRow[] {
   if (plan.prices.length === 0) return [newPriceRow()];
   return plan.prices.map((p) => ({
@@ -34,6 +43,15 @@ export function priceRowsFromPlan(plan: SubscriptionPlan): PriceRow[] {
     interval: p.billingInterval,
     price: String(p.planPrice),
   }));
+}
+
+export function featureRowsFromPlan(plan?: SubscriptionPlan): FeatureRow[] {
+  if (!plan?.features.length) return [newFeatureRow()];
+  return plan.features.map((text) => newFeatureRow(text));
+}
+
+export function parseFeatureRows(rows: FeatureRow[]): string[] {
+  return rows.map((row) => row.text.trim()).filter(Boolean);
 }
 
 export function defaultIsActive(plan?: SubscriptionPlan): boolean {

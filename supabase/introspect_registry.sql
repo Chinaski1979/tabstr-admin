@@ -29,3 +29,10 @@ SELECT conname AS constraint_name, pg_get_constraintdef(oid) AS definition
 FROM pg_constraint
 WHERE conrelid = 'public.organization_features'::regclass
   AND contype IN ('u', 'p');
+
+
+-- 4) New Columns on organization_plans
+ALTER TABLE public.subscription_plans
+  ADD COLUMN IF NOT EXISTS features text[] NOT NULL DEFAULT '{}';
+ALTER TABLE public.organization_special_plans
+  ADD COLUMN IF NOT EXISTS features text[] NOT NULL DEFAULT '{}';
