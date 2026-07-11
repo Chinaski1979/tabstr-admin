@@ -26,9 +26,9 @@ export function OrganizationFeaturesCard({ orgRegistryId }: { orgRegistryId: str
         {!isLoading && !error && features.length > 0 && (
           <ul className="divide-y">
             {features.map((feature) => (
-              <li key={feature.flag.id} className="flex items-center justify-between py-3">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
+              <li key={feature.flag.id} className="flex items-start justify-between gap-3 py-3">
+                <div className="min-w-0 flex flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">{feature.flag.featureName}</span>
                     {feature.flag.isPaid && <Badge variant="outline">Paid</Badge>}
                     {!feature.flag.isEnabled && (
@@ -36,6 +36,11 @@ export function OrganizationFeaturesCard({ orgRegistryId }: { orgRegistryId: str
                     )}
                     {feature.effectivelyEnabled && <Badge variant="success">Live</Badge>}
                   </div>
+                  {feature.flag.description && (
+                    <span className="text-xs text-muted-foreground">
+                      {feature.flag.description}
+                    </span>
+                  )}
                   {feature.flag.planName && (
                     <span className="text-xs text-muted-foreground">
                       Plan: {feature.flag.planName}
@@ -43,6 +48,7 @@ export function OrganizationFeaturesCard({ orgRegistryId }: { orgRegistryId: str
                   )}
                 </div>
                 <Switch
+                  className="mt-0.5 shrink-0"
                   checked={feature.active}
                   disabled={isUpdating}
                   onCheckedChange={(checked) =>

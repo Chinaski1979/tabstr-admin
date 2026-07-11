@@ -16,10 +16,15 @@ function firstEmbed(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+function mapFeatures(value: string[]): string[] {
+  return value ?? [];
+}
+
 function mapPlan(row: any): SubscriptionPlan {
   return {
     id: row.id,
     planName: row.plan_name,
+    features: mapFeatures(row.features ?? []),
     prices: (row.subscription_plan_prices ?? []).map((p: any) => ({
       id: p.id,
       billingInterval: p.billing_interval,
@@ -58,6 +63,7 @@ function mapSpecialPlan(row: any): OrganizationSpecialPlan {
     specialPlanName: row.special_plan_name,
     specialPrice: Number(row.special_price ?? 0),
     isActive: row.is_active ?? false,
+    features: mapFeatures(row.features ?? []),
   };
 }
 
@@ -81,8 +87,8 @@ export const subscriptionsService = {
 
     const { data: planRow, error: planError } = await supabase
       .from("subscription_plans")
-      .insert({ plan_name: planName })
-      .select("id, plan_name")
+      .insert({ plan_name: planName, features: input.features ?? [] })
+      .select("id, plan_name, features")
       .single();
 
     if (planError) throw planError;
@@ -114,9 +120,9 @@ export const subscriptionsService = {
 
     const { data: planRow, error: planError } = await supabase
       .from("subscription_plans")
-      .update({ plan_name: planName })
+      .update({ plan_name: planName, features: input.features ?? [] })
       .eq("id", planId)
-      .select("id, plan_name")
+      .select("id, plan_name, features")
       .single();
 
     if (planError) throw planError;
@@ -188,7 +194,9 @@ export const subscriptionsService = {
     const supabase = getRegistryClient();
     const { data, error } = await supabase
       .from("subscription_plans")
-      .select("id, plan_name, subscription_plan_prices(id, billing_interval, plan_price, is_active)")
+      .select(
+        "id, plan_name, features, subscription_plan_prices(id, billing_interval, plan_price, is_active)",
+      )
       .order("plan_name");
 
     if (error) throw error;
@@ -199,7 +207,7 @@ export const subscriptionsService = {
     const supabase = getRegistryClient();
     const { data, error } = await supabase
       .from("organization_special_plans")
-      .select("id, organization_registry_id, special_plan_name, special_price, is_active")
+      .select("id, organization_registry_id, special_plan_name, special_price, is_active, features")
       .eq("organization_registry_id", orgRegistryId)
       .maybeSingle();
 
@@ -219,8 +227,9 @@ export const subscriptionsService = {
         special_plan_name: input.specialPlanName.trim(),
         special_price: input.specialPrice,
         is_active: input.isActive ?? true,
+        features: input.features ?? [],
       })
-      .select("id, organization_registry_id, special_plan_name, special_price, is_active")
+      .select("id, organization_registry_id, special_plan_name, special_price, is_active, features")
       .single();
 
     if (error) throw error;
@@ -238,9 +247,10 @@ export const subscriptionsService = {
         special_plan_name: input.specialPlanName.trim(),
         special_price: input.specialPrice,
         is_active: input.isActive ?? true,
+        features: input.features ?? [],
       })
       .eq("id", specialPlanId)
-      .select("id, organization_registry_id, special_plan_name, special_price, is_active")
+      .select("id, organization_registry_id, special_plan_name, special_price, is_active, features")
       .single();
 
     if (error) throw error;
