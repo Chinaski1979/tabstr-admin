@@ -1,10 +1,16 @@
 import { getRegistryClient } from "@/integrations/supabase/client";
-import type { CreateFeatureFlagInput, FeatureFlag, OrganizationFeature } from "@/types";
+import type {
+  CreateFeatureFlagInput,
+  FeatureFlag,
+  OrganizationFeature,
+  UpdateFeatureFlagInput,
+} from "@/types";
 
 function mapFlag(row: any): FeatureFlag {
   return {
     id: row.id,
     featureName: row.feature_name,
+    description: row.description ?? null,
     isEnabled: row.is_enabled ?? false,
     isPaid: row.is_paid ?? false,
     planName: row.plan_name ?? null,
@@ -14,7 +20,7 @@ function mapFlag(row: any): FeatureFlag {
 }
 
 const FLAG_SELECT =
-  "id, feature_name, is_enabled, is_paid, plan_name, created_at, updated_at";
+  "id, feature_name, description, is_enabled, is_paid, plan_name, created_at, updated_at";
 
 /** organization_features columns — see supabase/registry_schema.md */
 const ORG_FEATURE_SELECT = "id, organization_id, feature_id, active";
@@ -47,16 +53,43 @@ export const featureFlagsService = {
   async create(input: CreateFeatureFlagInput): Promise<FeatureFlag> {
     const supabase = getRegistryClient();
     const featureName = input.featureName.trim();
+    const description = input.description?.trim() || null;
     const planName = input.planName?.trim() || null;
 
     const { data, error } = await supabase
       .from("feature_flags")
       .insert({
         feature_name: featureName,
+        description,
         is_enabled: input.isEnabled ?? false,
         is_paid: input.isPaid ?? false,
         plan_name: planName,
       })
+      .select(FLAG_SELECT)
+      .single();
+
+    if (error) throw error;
+    return mapFlag(data);
+  },
+
+  async update(flagId: string, input: UpdateFeatureFlagInput): Promise<FeatureFlag> {
+    const supabase = getRegistryClient();
+    const patch: Record<string, unknown> = {};
+
+    if (input.description !== undefined) {
+      patch.description = input.description?.trim() || null;
+    }
+    if (input.isPaid !== undefined) {
+      patch.is_paid = input.isPaid;
+    }
+    if (input.planName !== undefined) {
+      patch.plan_name = input.planName?.trim() || null;
+    }
+
+    const { data, error } = await supabase
+      .from("feature_flags")
+      .update(patch)
+      .eq("id", flagId)
       .select(FLAG_SELECT)
       .single();
 
