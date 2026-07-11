@@ -76,7 +76,7 @@ export function SubscriptionPlanFormFields({
                   onUpdateRow(row.key, { interval: value as BillingInterval })
                 }
               >
-                <SelectTrigger className="w-[140px] shrink-0">
+                <SelectTrigger className="w-[7.5rem] shrink-0 sm:w-[140px]">
                   <SelectValue placeholder="Interval" />
                 </SelectTrigger>
                 <SelectContent>
