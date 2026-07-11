@@ -36,7 +36,7 @@ components when the route guard already did.
 ## Role gating
 
 - Route-level: `<ProtectedRoute requiredRole="full_access" />` in `App.tsx`.
-- Nav-level: the `Sidebar` filters items by `isFullAccess`.
+- Nav-level: `SidebarNav` filters items by `isFullAccess` (desktop sidebar + mobile sheet).
 - In-component: read `useAuth().isFullAccess` / `hasRole(...)` for conditional UI.
 
 ## Loading / error / empty

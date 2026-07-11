@@ -31,9 +31,9 @@ export default function FeatureFlagsPage() {
           {!isLoading && !error && flags.length > 0 && (
             <ul className="divide-y">
               {flags.map((flag) => (
-                <li key={flag.id} className="flex items-center justify-between px-6 py-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
+                <li key={flag.id} className="flex items-center justify-between gap-3 px-4 py-4 sm:px-6">
+                  <div className="min-w-0 flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium">{flag.featureName}</span>
                       {flag.isPaid && <Badge variant="outline">Paid</Badge>}
                       {flag.planName && <Badge variant="secondary">{flag.planName}</Badge>}

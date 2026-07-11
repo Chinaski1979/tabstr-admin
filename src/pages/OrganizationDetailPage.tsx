@@ -54,7 +54,7 @@ export default function OrganizationDetailPage() {
           </Detail>
           <Detail label="Registered">{formatDate(organization.createdAt)}</Detail>
           <Detail label="Supabase URL">
-            <span className="font-mono text-xs">{organization.supabaseUrl}</span>
+            <span className="break-all font-mono text-xs">{organization.supabaseUrl}</span>
           </Detail>
           <Detail label="Anon key">
             <span className="font-mono text-xs text-muted-foreground">
@@ -64,7 +64,7 @@ export default function OrganizationDetailPage() {
         </CardContent>
       </Card>
       <Tabs defaultValue="features">
-        <TabsList>
+        <TabsList className="h-auto w-full justify-start overflow-x-auto">
           <TabsTrigger value="features">Feature flags</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
