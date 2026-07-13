@@ -27,6 +27,45 @@ export interface OrganizationRegistry {
   updatedAt: Date;
 }
 
+/** Roles allowed on organization_memberships in tenant databases. */
+export type OrgMembershipRole = 'admin' | 'manager' | 'cashier' | 'accountant';
+
+export const ORG_MEMBERSHIP_ROLE_OPTIONS = [
+  { value: 'admin' as const, label: 'Admin' },
+  { value: 'manager' as const, label: 'Manager' },
+  { value: 'cashier' as const, label: 'Cashier' },
+  { value: 'accountant' as const, label: 'Accountant' },
+];
+
+export interface OrganizationMember {
+  id: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  role: OrgMembershipRole;
+  isActive: boolean;
+  joinedAt: Date;
+}
+
+export type CreateOrgUserInput = {
+  email: string;
+  password: string;
+  fullName: string;
+  role: OrgMembershipRole;
+};
+
+export interface CreateOrgUserResult {
+  userId: string;
+  membershipId: string;
+  reusedExistingUser: boolean;
+}
+
+export type UpdateOrgUserInput = {
+  fullName: string;
+  role: OrgMembershipRole;
+  isActive: boolean;
+};
+
 /** A global feature flag definition (feature_flags table). */
 export interface FeatureFlag {
   id: string;

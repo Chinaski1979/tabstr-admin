@@ -11,6 +11,7 @@ import { OrganizationStatusToggle } from "@/components/organizations/Organizatio
 import { OrganizationFeaturesCard } from "@/components/organizations/OrganizationFeaturesCard";
 import { OrganizationPlatformMessagesCard } from "@/components/organizations/OrganizationPlatformMessagesCard";
 import { OrganizationSpecialPlanCard } from "@/components/organizations/specialPlan/OrganizationSpecialPlanCard";
+import { OrganizationMembersCard } from "@/components/organizations/members/OrganizationMembersCard";
 import { OrganizationSubscriptionCard } from "@/components/organizations/OrganizationSubscriptionCard";
 import { useOrganization } from "@/hooks/useOrganizations";
 import { formatDate } from "@/lib/utils";
@@ -80,6 +81,7 @@ export default function OrganizationDetailPage() {
         </TabsContent>
       </Tabs>
       <OrganizationSpecialPlanCard orgRegistryId={organization.id} />
+      <OrganizationMembersCard organization={organization} />
     </div>
   );
 }

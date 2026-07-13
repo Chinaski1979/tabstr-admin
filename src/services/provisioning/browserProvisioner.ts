@@ -5,6 +5,7 @@ import { seedPaymentMethods } from './defaultPayments';
 import { MIGRATION_FILES } from './migrations';
 import { findOrgUserIdByEmail } from './checkOrgUser';
 import { createOrgAdminClient } from './orgAdminClient';
+import { createOrgAuthUser, insertOrgMembership } from './orgUserOperations';
 import type { ProvisionOrganizationInput, ProvisionResult } from '@/types';
 
 /**
@@ -144,63 +145,6 @@ async function checkExistingUser(
 }
 
 /**
- * Creates a new auth user with email auto-confirmed (service_role admin API).
- */
-async function createAuthUser(
-  orgClient: SupabaseClient,
-  input: ProvisionOrganizationInput
-): Promise<string> {
-  console.log('Creating auth user...');
-  
-  const { data, error } = await orgClient.auth.admin.createUser({
-    email: input.email,
-    password: input.password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: input.fullName,
-    },
-  });
-
-  if (error) {
-    throw new Error(`Failed to create auth user: ${error.message}`);
-  }
-
-  if (!data.user) {
-    throw new Error('User creation returned no user data');
-  }
-
-  console.log(`Created auth user with ID: ${data.user.id}`);
-  return data.user.id;
-}
-
-/**
- * Creates an admin membership for the user.
- */
-async function createMembership(
-  orgClient: SupabaseClient,
-  userId: string,
-  organizationId: string
-): Promise<void> {
-  console.log('Creating admin membership...');
-  
-  const { error } = await orgClient
-    .from('organization_memberships')
-    .insert({
-      user_id: userId,
-      organization_id: organizationId,
-      role: 'admin',
-      is_active: true,
-      joined_at: new Date().toISOString(),
-    });
-
-  if (error) {
-    throw new Error(`Failed to create membership: ${error.message}`);
-  }
-
-  console.log('Created admin membership');
-}
-
-/**
  * Main provisioning function for browser environment.
  * Creates a complete organization with database schema, admin user, and initial data.
  */
@@ -242,12 +186,23 @@ export async function provisionOrganization(
     let userId = await checkExistingUser(orgClient, input.email);
     
     if (!userId) {
-      userId = await createAuthUser(orgClient, input);
+      console.log('Creating auth user...');
+      userId = await createOrgAuthUser(orgClient, {
+        email: input.email,
+        password: input.password,
+        fullName: input.fullName,
+      });
+      console.log(`Created auth user with ID: ${userId}`);
     }
 
     // 7. Create membership
     console.log('\nStep 7: Creating admin membership...');
-    await createMembership(orgClient, userId, organizationId);
+    await insertOrgMembership(orgClient, {
+      userId,
+      organizationId,
+      role: 'admin',
+    });
+    console.log('Created admin membership');
 
     // 8. Seed payment methods
     console.log('\nStep 8: Seeding payment methods...');
