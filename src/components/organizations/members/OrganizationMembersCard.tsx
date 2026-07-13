@@ -35,26 +35,28 @@ export function OrganizationMembersCard({ organization }: { organization: Organi
     setDialogOpen(true);
   };
 
+  const createButton = (
+    <Button size="sm" className="shrink-0" onClick={openCreateDialog}>
+      <Plus className="h-4 w-4" />
+      Create user
+    </Button>
+  );
+
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-          <div className="flex flex-col gap-1.5">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0 flex flex-col gap-1.5">
             <CardTitle>Members</CardTitle>
             <CardDescription>
               Users with access to this organization in its Supabase project.
             </CardDescription>
           </div>
-          {isSharedProject && (
-            <Button size="sm" onClick={openCreateDialog}>
-              <Plus className="h-4 w-4" />
-              Create user
-            </Button>
-          )}
+          {isSharedProject && createButton}
         </CardHeader>
         <CardContent className="p-0">
           {!isSharedProject && (
-            <div className="px-6 pb-6">
+            <div className="px-4 pb-4 sm:px-6 sm:pb-6">
               <EmptyState
                 title="Members unavailable"
                 description="This organization is not on a configured shared Supabase project, so members cannot be listed or created from the admin panel."
@@ -67,57 +69,65 @@ export function OrganizationMembersCard({ organization }: { organization: Organi
             <EmptyState
               title="No members yet"
               description="Create the first user for this organization."
-              action={
-                <Button size="sm" onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4" />
-                  Create user
-                </Button>
-              }
+              action={createButton}
             />
           )}
           {isSharedProject && !isLoading && !error && members.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="w-[80px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <ul className="divide-y md:hidden">
                 {members.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.email || '—'}</TableCell>
-                    <TableCell>{member.fullName || '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{orgMembershipRoleLabel(member.role)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={member.isActive ? 'success' : 'secondary'}>
-                        {member.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(member.joinedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => openEditDialog(member)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit member</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <MemberMobileRow
+                    key={member.id}
+                    member={member}
+                    onEdit={() => openEditDialog(member)}
+                  />
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead className="w-[80px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell className="font-medium">{member.email || '—'}</TableCell>
+                        <TableCell>{member.fullName || '—'}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{orgMembershipRoleLabel(member.role)}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={member.isActive ? 'success' : 'secondary'}>
+                            {member.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(member.joinedAt)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => openEditDialog(member)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit member</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -132,5 +142,39 @@ export function OrganizationMembersCard({ organization }: { organization: Organi
         />
       )}
     </>
+  );
+}
+
+interface MemberMobileRowProps {
+  member: OrganizationMember;
+  onEdit: () => void;
+}
+
+function MemberMobileRow({ member, onEdit }: MemberMobileRowProps) {
+  return (
+    <li className="flex items-start justify-between gap-3 px-4 py-4">
+      <div className="min-w-0 flex flex-col gap-1.5">
+        <span className="truncate text-sm font-medium">{member.email || '—'}</span>
+        {member.fullName && (
+          <span className="truncate text-sm text-muted-foreground">{member.fullName}</span>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{orgMembershipRoleLabel(member.role)}</Badge>
+          <Badge variant={member.isActive ? 'success' : 'secondary'}>
+            {member.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+        <span className="text-xs text-muted-foreground">Joined {formatDate(member.joinedAt)}</span>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-8 w-8 shrink-0 p-0"
+        onClick={onEdit}
+      >
+        <Pencil className="h-4 w-4" />
+        <span className="sr-only">Edit member</span>
+      </Button>
+    </li>
   );
 }
