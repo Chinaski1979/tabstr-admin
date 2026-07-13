@@ -155,8 +155,8 @@ export function CreateOrgUserDialog({
         if (!next) resetForm();
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-h-[min(90dvh,100%)] overflow-y-auto p-4 sm:max-w-md sm:p-6">
+        <DialogHeader className="pr-8 text-left">
           <DialogTitle>{isEdit ? 'Edit member' : 'Create user'}</DialogTitle>
           <DialogDescription>
             {isEdit
@@ -235,20 +235,21 @@ export function CreateOrgUserDialog({
           </div>
 
           {isEdit && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-start gap-3">
               <Switch
                 id={`${formId}-is-active`}
+                className="mt-0.5"
                 checked={isActive}
                 onCheckedChange={(checked) => setValue('isActive', checked)}
               />
-              <Label htmlFor={`${formId}-is-active`} className="cursor-pointer">
+              <Label htmlFor={`${formId}-is-active`} className="cursor-pointer leading-snug">
                 Active membership
               </Label>
             </div>
           )}
 
-          <DialogFooter>
-            <Button type="submit" disabled={isSaving}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
               {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
               {isEdit ? 'Save' : 'Create user'}
             </Button>
