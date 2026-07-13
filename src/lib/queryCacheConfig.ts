@@ -16,10 +16,11 @@ export const STALE_TIME = {
   /** Auth profile / role — changes very rarely within a session. */
   adminProfile: 10 * MIN,
   organizations: 1 * MIN,
-  featureFlags: 5 * MIN,
+  featureFlags: 1 * MIN,
   organizationFeatures: 1 * MIN,
   subscriptionPlans: 10 * MIN,
   subscriptions: 1 * MIN,
   invoices: 1 * MIN,
   organizationMembers: 1 * MIN,
+  platformMessages: 1 * MIN,
 } as const;

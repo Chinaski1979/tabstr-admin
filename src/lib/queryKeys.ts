@@ -30,4 +30,8 @@ export const queryKeys = {
   /** Members in the tenant database for an org */
   organizationMembers: (orgRegistryId: string) =>
     ["organizationMembers", orgRegistryId] as const,
+  // Platform broadcast messages (platform_messages)
+  globalPlatformMessages: () => ["globalPlatformMessages"] as const,
+  organizationPlatformMessages: (orgRegistryId: string) =>
+    ["organizationPlatformMessages", orgRegistryId] as const,
 } as const;

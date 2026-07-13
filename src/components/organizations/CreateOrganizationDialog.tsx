@@ -23,7 +23,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useProvisionOrganization } from '@/hooks/useProvisionOrganization';
 import { generateSlugFromName } from '@/lib/slugUtils';
@@ -225,16 +224,16 @@ export function CreateOrganizationDialog() {
           New organization
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-h-[min(90dvh,100%)] gap-4 overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
+        <DialogHeader className="pr-8 text-left">
           <DialogTitle>New organization</DialogTitle>
           <DialogDescription>
             Registers the org and sets up admin user and initial data. Use a shared project for
             existing Supabase DBs; enable migrations only for empty projects.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-          <div className="space-y-4 rounded-md border p-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 sm:gap-5">
+          <div className="space-y-4 rounded-md border p-3 sm:p-4">
             <h3 className="flex items-center gap-2 border-b pb-3 text-sm font-semibold">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                 1
@@ -242,13 +241,14 @@ export function CreateOrganizationDialog() {
               Supabase Database
             </h3>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-start gap-3">
               <Switch
                 id="runMigrations"
+                className="mt-0.5"
                 checked={runMigrations}
                 onCheckedChange={(checked) => setValue('runMigrations', checked)}
               />
-              <Label htmlFor="runMigrations" className="cursor-pointer">
+              <Label htmlFor="runMigrations" className="cursor-pointer leading-snug">
                 Apply migration files (new empty Supabase project)
               </Label>
             </div>
@@ -310,7 +310,7 @@ export function CreateOrganizationDialog() {
               </>
             )}
           </div>
-          <div className="space-y-4 rounded-md border p-4">
+          <div className="space-y-4 rounded-md border p-3 sm:p-4">
             <h3 className="flex items-center gap-2 border-b pb-3 text-sm font-semibold">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                 2
@@ -337,7 +337,7 @@ export function CreateOrganizationDialog() {
               )}
             </div>
           </div>
-          <div className="space-y-4 rounded-md border p-4">
+          <div className="space-y-4 rounded-md border p-3 sm:p-4">
             <h3 className="flex items-center gap-2 border-b pb-3 text-sm font-semibold">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                 3
@@ -383,8 +383,8 @@ export function CreateOrganizationDialog() {
             )}
           </div>
 
-          <DialogFooter>
-            <Button type="submit" disabled={isProvisioning}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="submit" disabled={isProvisioning} className="w-full sm:w-auto">
               {isProvisioning && <Loader2 className="h-4 w-4 animate-spin" />}
               {isProvisioning ? 'Creating...' : 'Create organization'}
             </Button>

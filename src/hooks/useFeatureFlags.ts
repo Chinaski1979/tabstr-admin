@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { featureFlagsService } from "@/services/featureFlags/featureFlagsService";
 import { queryKeys } from "@/lib/queryKeys";
 import { STALE_TIME } from "@/lib/queryCacheConfig";
-import type { FeatureFlag, OrganizationFeature, CreateFeatureFlagInput } from "@/types";
+import type { FeatureFlag, OrganizationFeature, CreateFeatureFlagInput, UpdateFeatureFlagInput } from "@/types";
 
 export function useFeatureFlags() {
   const {
@@ -64,6 +64,25 @@ export function useCreateFeatureFlag() {
   });
 
   return { createFeatureFlag: mutation.mutateAsync, isCreating: mutation.isPending };
+}
+
+export function useUpdateFeatureFlag() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: ({ flagId, input }: { flagId: string; input: UpdateFeatureFlagInput }) =>
+      featureFlagsService.update(flagId, input),
+    onSuccess: (flag) => {
+      toast.success("Feature flag updated", { description: flag.featureName });
+      queryClient.invalidateQueries({ queryKey: queryKeys.featureFlags() });
+      queryClient.invalidateQueries({ queryKey: ["organizationFeatures"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Could not update feature flag", { description: error.message });
+    },
+  });
+
+  return { updateFeatureFlag: mutation.mutateAsync, isUpdating: mutation.isPending };
 }
 
 export function useOrganizationFeatures(orgRegistryId: string) {
