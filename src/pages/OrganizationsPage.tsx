@@ -84,9 +84,16 @@ export default function OrganizationsPage() {
                       {org.supabaseUrl}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={org.isActive ? "success" : "secondary"}>
-                        {org.isActive ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant={org.isActive ? "success" : "secondary"}>
+                          {org.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        {org.isSuspended && (
+                          <Badge variant="secondary" className="text-amber-700 dark:text-amber-400">
+                            Suspended
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{formatDate(org.createdAt)}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
