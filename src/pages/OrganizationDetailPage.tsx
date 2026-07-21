@@ -49,9 +49,16 @@ export default function OrganizationDetailPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Detail label="Status">
-            <Badge variant={organization.isActive ? "success" : "secondary"}>
-              {organization.isActive ? "Active" : "Inactive"}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant={organization.isActive ? "success" : "secondary"}>
+                {organization.isActive ? "Active" : "Inactive"}
+              </Badge>
+              {organization.isSuspended && (
+                <Badge variant="secondary" className="text-amber-700 dark:text-amber-400">
+                  Suspended
+                </Badge>
+              )}
+            </div>
           </Detail>
           <Detail label="Registered">{formatDate(organization.createdAt)}</Detail>
           <Detail label="Supabase URL">

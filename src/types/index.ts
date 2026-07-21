@@ -23,6 +23,8 @@ export interface OrganizationRegistry {
   supabaseUrl: string;
   supabaseAnonKey: string;
   isActive: boolean;
+  /** Soft restriction: login allowed; POS may gate features. Weaker than !isActive. */
+  isSuspended: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
