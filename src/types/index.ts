@@ -199,6 +199,9 @@ export interface SubscriptionInvoice {
   currency: string | null;
   status: string; // paid | failed | pending
   powertranzTransactionId: string | null;
+  /** Hacienda FE status from subscription-electronic-invoice (pending | created | failed) */
+  haciendaStatus: string | null;
+  haciendaInvoiceId: string | null;
   processedAt: string | null;
   createdAt: Date;
 }
