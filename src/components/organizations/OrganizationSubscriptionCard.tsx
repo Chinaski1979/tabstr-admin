@@ -14,7 +14,6 @@ import {
   useOrganizationInvoices,
   useOrganizationSubscription,
 } from "@/hooks/useSubscriptions";
-import { CheckCircle, Clock, XCircle } from "lucide-react";
 
 function subscriptionStatusVariant(status: string) {
   const s = status.toLowerCase();
@@ -24,71 +23,23 @@ function subscriptionStatusVariant(status: string) {
   return "secondary" as const;
 }
 
-/** Matches Tabstr BillingHistory / mapInvoiceStatusFromRegistry. */
-function mapPaymentStatus(status: string | null | undefined): "paid" | "pending" | "failed" {
-  const s = (status ?? "").toLowerCase().trim();
-  if (s === "paid") return "paid";
-  if (s === "failed") return "failed";
-  return "pending";
+function invoiceStatusVariant(status: string) {
+  const s = status.toLowerCase();
+  if (s === "paid") return "success" as const;
+  if (s === "failed") return "destructive" as const;
+  return "secondary" as const;
 }
 
-/** Same visual language as Tabstr `getStatusConfig` in BillingHistory.tsx. */
-function getPaymentStatusConfig(status: string | null | undefined) {
-  switch (mapPaymentStatus(status)) {
-    case "paid":
-      return {
-        label: "Paid",
-        variant: "success" as const,
-        icon: CheckCircle,
-        iconClass: "text-green-500",
-      };
-    case "pending":
-      return {
-        label: "Pending",
-        variant: "secondary" as const,
-        icon: Clock,
-        iconClass: "text-yellow-500",
-      };
-    case "failed":
-      return {
-        label: "Failed",
-        variant: "destructive" as const,
-        icon: XCircle,
-        iconClass: "text-red-500",
-      };
-  }
-}
-
-/**
- * Hacienda FE status from subscription-electronic-invoice
- * (pending | created | failed) — same badge/icon pattern as payment status.
- */
-function getHaciendaInvoiceStatusConfig(status: string | null) {
+/** Maps registry hacienda_status → English label for the Invoice status column. */
+function formatInvoiceStatus(status: string | null): {
+  label: string;
+  variant: "success" | "secondary" | "destructive" | "warning";
+} | null {
   const s = (status ?? "").toLowerCase().trim();
-  if (s === "created") {
-    return {
-      label: "Created",
-      variant: "success" as const,
-      icon: CheckCircle,
-      iconClass: "text-green-500",
-    };
-  }
-  if (s === "pending") {
-    return {
-      label: "Pending",
-      variant: "secondary" as const,
-      icon: Clock,
-      iconClass: "text-yellow-500",
-    };
-  }
-  if (s === "failed") {
-    return {
-      label: "Failed",
-      variant: "destructive" as const,
-      icon: XCircle,
-      iconClass: "text-red-500",
-    };
-  }
+  if (s === "created") return { label: "Accepted", variant: "success" };
+  if (s === "pending") return { label: "Pending", variant: "secondary" };
+  if (s === "failed") return { label: "Error", variant: "destructive" };
+  if (s === "rejected") return { label: "Rejected", variant: "destructive" };
   return null;
 }
 
@@ -143,33 +94,21 @@ export function OrganizationSubscriptionCard({ orgRegistryId }: { orgRegistryId:
               </TableHeader>
               <TableBody>
                 {invoices.map((inv) => {
-                  const paymentConfig = getPaymentStatusConfig(inv.status);
-                  const PaymentIcon = paymentConfig.icon;
-                  const haciendaConfig = getHaciendaInvoiceStatusConfig(inv.haciendaStatus);
-                  const HaciendaIcon = haciendaConfig?.icon;
-
+                  const invoiceStatus = formatInvoiceStatus(inv.haciendaStatus);
                   return (
                     <TableRow key={inv.id}>
                       <TableCell>{formatDate(inv.processedAt ?? inv.createdAt)}</TableCell>
                       <TableCell>{formatCurrency(inv.amount, inv.currency ?? "USD")}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={paymentConfig.variant}
-                          className="flex w-fit items-center gap-1"
-                        >
-                          <PaymentIcon className={`h-3 w-3 ${paymentConfig.iconClass}`} />
-                          <span>{paymentConfig.label}</span>
-                        </Badge>
+                        <Badge variant={invoiceStatusVariant(inv.status)}>{inv.status}</Badge>
                       </TableCell>
                       <TableCell>
-                        {haciendaConfig && HaciendaIcon ? (
+                        {invoiceStatus ? (
                           <Badge
-                            variant={haciendaConfig.variant}
-                            className="flex w-fit items-center gap-1"
+                            variant={invoiceStatus.variant}
                             title={inv.haciendaInvoiceId ?? undefined}
                           >
-                            <HaciendaIcon className={`h-3 w-3 ${haciendaConfig.iconClass}`} />
-                            <span>{haciendaConfig.label}</span>
+                            {invoiceStatus.label}
                           </Badge>
                         ) : (
                           <span className="text-sm text-muted-foreground">—</span>

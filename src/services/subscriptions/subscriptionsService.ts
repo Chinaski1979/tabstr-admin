@@ -67,20 +67,13 @@ function mapSpecialPlan(row: any): OrganizationSpecialPlan {
   };
 }
 
-function mapPaymentStatus(status: string | null | undefined): "paid" | "pending" | "failed" {
-  const s = (status ?? "").toLowerCase().trim();
-  if (s === "paid") return "paid";
-  if (s === "failed") return "failed";
-  return "pending";
-}
-
 function mapInvoice(row: any): SubscriptionInvoice {
   return {
     id: String(row.id),
     subscriptionId: row.subscription_id,
     amount: Number(row.amount ?? 0),
     currency: row.currency ?? null,
-    status: mapPaymentStatus(row.status),
+    status: row.status ?? "pending",
     powertranzTransactionId: row.powertranz_transaction_id ?? null,
     haciendaStatus: row.hacienda_status ?? null,
     haciendaInvoiceId: row.hacienda_invoice_id ?? null,
