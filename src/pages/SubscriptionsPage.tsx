@@ -15,8 +15,8 @@ import {
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
 import { CreateSubscriptionPlanDialog } from "@/components/subscriptions/SubscriptionPlanDialog";
 import { SubscriptionPlanCard } from "@/components/subscriptions/SubscriptionPlanCard";
+import { formatDateNotISO } from "@/lib/utils";
 import { SubscriptionsTableFilters } from "@/components/subscriptions/SubscriptionsTableFilters";
-import { formatDate } from "@/lib/utils";
 import { useSubscriptionPlans, useAllSubscriptions } from "@/hooks/useSubscriptions";
 
 function statusVariant(status: string) {
@@ -137,7 +137,7 @@ export default function SubscriptionsPage() {
                     </TableCell>
                     <TableCell>{sub.frequency ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {formatDate(sub.nextExecutionDate)}
+                      {formatDateNotISO(sub.nextExecutionDate)}
                     </TableCell>
                   </TableRow>
                 ))}

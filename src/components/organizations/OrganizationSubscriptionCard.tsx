@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateNotISO } from "@/lib/utils";
 import {
   useOrganizationInvoices,
   useOrganizationSubscription,
@@ -58,7 +58,7 @@ export function OrganizationSubscriptionCard({ orgRegistryId }: { orgRegistryId:
               }
             />
             <Detail label="Frequency" value={subscription.frequency ?? "—"} />
-            <Detail label="Next charge" value={formatDate(subscription.nextExecutionDate)} />
+            <Detail label="Next charge" value={formatDateNotISO(subscription.nextExecutionDate)} />
           </div>
         )}
 
