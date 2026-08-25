@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { PageHeader } from "@/components/common/PageHeader";
@@ -14,6 +15,7 @@ import {
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
 import { CreateSubscriptionPlanDialog } from "@/components/subscriptions/SubscriptionPlanDialog";
 import { SubscriptionPlanCard } from "@/components/subscriptions/SubscriptionPlanCard";
+import { SubscriptionsTableFilters } from "@/components/subscriptions/SubscriptionsTableFilters";
 import { formatDate } from "@/lib/utils";
 import { useSubscriptionPlans, useAllSubscriptions } from "@/hooks/useSubscriptions";
 
@@ -25,10 +27,34 @@ function statusVariant(status: string) {
   return "secondary" as const;
 }
 
+function uniqueSorted(values: (string | null | undefined)[]) {
+  return [...new Set(values.filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b));
+}
+
 export default function SubscriptionsPage() {
   const navigate = useNavigate();
   const { plans, isLoading: plansLoading } = useSubscriptionPlans();
   const { subscriptions, isLoading, error } = useAllSubscriptions();
+  const [filters, setFilters] = useState({ status: "all", frequency: "all" });
+
+  const statuses = useMemo(
+    () => uniqueSorted(subscriptions.map((sub) => sub.status)),
+    [subscriptions],
+  );
+  const frequencies = useMemo(
+    () => uniqueSorted(subscriptions.map((sub) => sub.frequency)),
+    [subscriptions],
+  );
+
+  const filtered = useMemo(() => {
+    return subscriptions.filter((sub) => {
+      if (filters.status !== "all" && sub.status !== filters.status) return false;
+      if (filters.frequency !== "all" && sub.frequency !== filters.frequency) return false;
+      return true;
+    });
+  }, [subscriptions, filters]);
+
+  const hasActiveFilters = filters.status !== "all" || filters.frequency !== "all";
 
   return (
     <div className="flex flex-col gap-6">
@@ -59,8 +85,16 @@ export default function SubscriptionsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <CardTitle>Subscriptions by organization</CardTitle>
+          {!isLoading && !error && subscriptions.length > 0 && (
+            <SubscriptionsTableFilters
+              value={filters}
+              onChange={setFilters}
+              statuses={statuses}
+              frequencies={frequencies}
+            />
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {isLoading && <LoadingState />}
@@ -68,7 +102,17 @@ export default function SubscriptionsPage() {
           {!isLoading && !error && subscriptions.length === 0 && (
             <EmptyState title="No subscriptions" description="No subscriptions on record yet." />
           )}
-          {!isLoading && !error && subscriptions.length > 0 && (
+          {!isLoading && !error && subscriptions.length > 0 && filtered.length === 0 && (
+            <EmptyState
+              title="No matching subscriptions"
+              description={
+                hasActiveFilters
+                  ? "No subscriptions match your filters."
+                  : "No subscriptions on record yet."
+              }
+            />
+          )}
+          {!isLoading && !error && filtered.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -80,7 +124,7 @@ export default function SubscriptionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {subscriptions.map((sub) => (
+                {filtered.map((sub) => (
                   <TableRow
                     key={sub.id}
                     className="cursor-pointer"
