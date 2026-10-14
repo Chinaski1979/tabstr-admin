@@ -97,7 +97,9 @@ export default function OrganizationsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{formatDate(org.createdAt)}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <OrganizationStatusToggle organization={org} />
+                      <div className="flex items-center justify-end gap-2">
+                        <OrganizationStatusToggle organization={org} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
