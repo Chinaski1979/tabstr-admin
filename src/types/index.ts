@@ -287,3 +287,126 @@ export type UpdatePlatformMessageInput = {
   isUrgent: boolean;
   isDismissible: boolean;
 };
+
+// Recursive organization delete (danger zone)
+
+/**
+ * Pre-deletion row count for one tenant table.
+ * `count: -1` means "not counted" (skipped table or failed count query).
+ */
+export interface TableCount {
+  table: string;
+  count: number;
+  /** Table has no `organization_id` column — cleaned up by SQL in Phase 1 instead. */
+  skipped: boolean;
+}
+
+/** A member of the org, plus whether they also belong to other organizations. */
+export interface OrgDeleteOrgUser {
+  userId: string;
+  inOtherOrgs: boolean;
+}
+
+/**
+ * Whether the browser admin session may delete a registry table directly.
+ * `allowed` = RLS + grants permit it; `pending-server-side` = manual/server-side cleanup.
+ */
+export type RegistryTableDisposition = "allowed" | "pending-server-side";
+
+/** Phase 3 (registry) table descriptor. */
+export interface RegistryTableDescriptor {
+  table: string;
+  /** Column matched against the org: FK to organization_registry (or organization_slug). */
+  fkColumn: string | null;
+  disposition: RegistryTableDisposition;
+}
+
+export type RegistryCleanupStatus = "deleted" | "pending-server-side" | "skipped" | "failed";
+
+export interface RegistryCleanupResult extends RegistryTableDescriptor {
+  status: RegistryCleanupStatus;
+  /** Rows removed — null when not attempted. */
+  rowCount: number | null;
+  reason?: string;
+  /** Manual SQL for tables the browser cannot delete (requires the Node-side service role key). */
+  manualSql?: string;
+  error?: string;
+  errorCode?: string;
+}
+
+/** One SQL statement run through `exec_sql`, with its outcome. */
+export interface ExecutedSqlStatement {
+  sql: string;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Read-only preview of a deletion: counts, generated SQL and registry plan.
+ * Built from counts + selects only — never mutates data.
+ */
+export interface DryRunPlan {
+  slug: string;
+  orgRegistryId: string;
+  orgId: string;
+  projectId: string;
+  execSqlPresent: boolean;
+  counts: TableCount[];
+  orgUserIds: string[];
+  orgUsers: OrgDeleteOrgUser[];
+  sqlStatements: string[];
+  registryPlan: RegistryTableDescriptor[];
+  errors: string[];
+}
+
+/**
+ * Persistent record of a delete attempt (localStorage key `tabstr-org-delete-audit`).
+ * ALWAYS produced by `executeOrgDelete` — including aborted/partial runs.
+ */
+export interface AuditReport {
+  id: string;
+  slug: string;
+  orgRegistryId: string;
+  orgId: string;
+  projectId: string;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  /** Stopped before Phase 1/2 (missing exec_sql, missing org row, …). */
+  aborted: boolean;
+  abortReason: string | null;
+  /** Completed without errors or failed registry rows. Pending rows are reported separately. */
+  success: boolean;
+  /**
+   * True only when the Phase 2 `DELETE FROM organizations` succeeded (Phase 3
+   * then ran). `false` means the organization row is STILL present — nothing
+   * was deleted. Optional because reports persisted before this field existed
+   * do not carry it (`undefined` = unknown, keep the generic wording).
+   */
+  phase2DeleteOk?: boolean;
+  execSqlPresent: boolean;
+  counts: TableCount[];
+  orgUsers: OrgDeleteOrgUser[];
+  /** Phase 1 + Phase 2 statements run through exec_sql, in order. */
+  executedSql: ExecutedSqlStatement[];
+  /** True when every trigger disabled in Phase 2 was re-enabled in `finally`. */
+  triggersReenabled: boolean;
+  triggerErrors: string[];
+  registryCleanup: RegistryCleanupResult[];
+  errors: string[];
+}
+
+/** Local (sync) deletion capability: shared project + service key present and valid. */
+export interface OrgDeleteCapability {
+  enabled: boolean;
+  /** Why deletion is disabled (English, shown as the button tooltip). */
+  reason?: string;
+  projectId?: string;
+  envVar?: string;
+}
+
+/** Capability plus a live probe against the org's project DB. */
+export interface OrgDeleteCapabilityProbe extends OrgDeleteCapability {
+  liveProbe: "ok" | "failed" | "skipped";
+  probeError?: string;
+}
