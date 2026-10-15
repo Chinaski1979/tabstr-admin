@@ -1,33 +1,66 @@
-import { LineChart } from "lucide-react";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useNavigate } from "react-router";
 
-/**
- * Full-access-only placeholder. Revenue analytics (MRR, churn, subscription
- * revenue) will be built here. The route is already gated to full_access admins.
- */
+import { PageHeader } from "@/components/common/PageHeader";
+import { EmptyState, ErrorState, LoadingState } from "@/components/common/StateViews";
+import { RevenueCollectedByMonth } from "@/components/revenue/RevenueCollectedByMonth";
+import { RevenueInvoicesTable } from "@/components/revenue/RevenueInvoicesTable";
+import { RevenueKpis } from "@/components/revenue/RevenueKpis";
+import { RevenueSpecialPlansTable } from "@/components/revenue/RevenueSpecialPlansTable";
+import { RevenueUnbilledNotice } from "@/components/revenue/RevenueUnbilledNotice";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRevenue } from "@/hooks/useRevenue";
+import { isRevenueEmpty } from "@/lib/revenue";
+import type { RevenuePeriod } from "@/types";
+
 export default function RevenuePage() {
+  const navigate = useNavigate();
+  const { overview, isLoading, error } = useRevenue();
+  const [period, setPeriod] = useState<RevenuePeriod>("monthly");
+
+  const handleSelectOrganization = (orgRegistryId: string) => {
+    navigate(`/organizations/${orgRegistryId}`);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Revenue"
-        description="Subscription revenue and analytics (full access only)."
+        description="Contracted net from special plans (ex-IVA). Collected history is card payments and includes IVA."
+        actions={
+          <Tabs value={period} onValueChange={(value) => setPeriod(value as RevenuePeriod)}>
+            <TabsList>
+              <TabsTrigger value="monthly">Monthly</TabsTrigger>
+              <TabsTrigger value="yearly">Yearly</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
       />
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LineChart className="h-5 w-5" />
-            Coming soon
-          </CardTitle>
-          <CardDescription>
-            Revenue dashboards (MRR, active subscriptions, churn, paid invoices) will live here. The
-            data already exists in the registry (subscriptions + subscription_invoices).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          This view is restricted to full-access administrators.
-        </CardContent>
-      </Card>
+
+      {isLoading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState error={error} />
+      ) : !overview || isRevenueEmpty(overview) ? (
+        <EmptyState
+          title="No revenue yet"
+          description="Create special plans and paid invoices will show contracted and collected totals here."
+        />
+      ) : (
+        <>
+          <RevenueKpis overview={overview} period={period} />
+          <RevenueUnbilledNotice plans={overview.plans} />
+          <RevenueCollectedByMonth months={overview.byMonth} />
+          <RevenueSpecialPlansTable
+            plans={overview.plans}
+            onSelectOrganization={handleSelectOrganization}
+          />
+          <RevenueInvoicesTable
+            invoices={overview.invoices}
+            onSelectOrganization={handleSelectOrganization}
+          />
+        </>
+      )}
     </div>
   );
 }

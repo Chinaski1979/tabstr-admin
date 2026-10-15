@@ -170,6 +170,7 @@ function invalidateSpecialPlanQueries(
   queryClient.invalidateQueries({ queryKey: queryKeys.organizationSpecialPlan(orgRegistryId) });
   queryClient.invalidateQueries({ queryKey: queryKeys.organizationSubscription(orgRegistryId) });
   queryClient.invalidateQueries({ queryKey: ["allSubscriptions"] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.revenue() });
 }
 
 export function useCreateOrganizationSpecialPlan(orgRegistryId: string) {
