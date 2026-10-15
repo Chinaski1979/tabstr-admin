@@ -205,6 +205,63 @@ export interface SubscriptionInvoice {
   createdAt: Date;
 }
 
+/** Costa Rica IVA applied on top of special_price when charging a card. */
+export const IVA_RATE = 0.13;
+
+export type RevenuePeriod = "monthly" | "yearly";
+
+/** An active special plan contributing to contracted (ex-IVA) revenue. */
+export interface ContractedRevenuePlan {
+  organizationRegistryId: string;
+  organizationSlug: string;
+  specialPlanName: string;
+  specialPrice: number;
+  startedAt: Date;
+  hasPaidInvoice: boolean;
+}
+
+/** A registry invoice joined with its organization, for collected (inc-IVA) history. */
+export interface CollectedRevenueInvoice {
+  id: string;
+  organizationRegistryId: string | null;
+  organizationSlug: string | null;
+  amount: number;
+  currency: string | null;
+  status: string;
+  processedAt: string | null;
+  createdAt: Date;
+}
+
+export interface CollectedRevenueMonth {
+  /** UTC calendar month, `YYYY-MM`. */
+  month: string;
+  paidTotal: number;
+  paidCount: number;
+  failedTotal: number;
+  failedCount: number;
+}
+
+/**
+ * Revenue overview for /revenue.
+ * Contracted figures are net of IVA (special_price). Collected figures are cash
+ * from subscription_invoices and already include IVA when the card was charged.
+ */
+export interface RevenueOverview {
+  contractedNet: number;
+  contractedGross: number;
+  yearlyNetProjection: number;
+  yearlyGrossProjection: number;
+  contributingPlanCount: number;
+  unbilledPlanCount: number;
+  collectedThisMonth: number;
+  collectedThisYear: number;
+  failedThisMonth: number;
+  failedThisYear: number;
+  plans: ContractedRevenuePlan[];
+  byMonth: CollectedRevenueMonth[];
+  invoices: CollectedRevenueInvoice[];
+}
+
 // Organization provisioning types
 
 /**

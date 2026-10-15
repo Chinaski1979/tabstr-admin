@@ -1,0 +1,118 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
+import { buildRevenueOverview } from "@/lib/revenue";
+import type { CollectedRevenueInvoice, ContractedRevenuePlan } from "@/types";
+
+const { mockUseRevenue } = vi.hoisted(() => ({
+  mockUseRevenue: vi.fn(),
+}));
+
+vi.mock("@/hooks/useRevenue", () => ({
+  useRevenue: mockUseRevenue,
+}));
+
+import RevenuePage from "@/pages/RevenuePage";
+
+const NOW = new Date("2026-10-15T12:00:00.000Z");
+
+const plans: ContractedRevenuePlan[] = [
+  {
+    organizationRegistryId: "org-caravana",
+    organizationSlug: "caravana",
+    specialPlanName: "Precio Especial Caravana",
+    specialPrice: 54,
+    startedAt: new Date("2026-08-03T18:46:16.000Z"),
+    hasPaidInvoice: false,
+  },
+  {
+    organizationRegistryId: "org-aura",
+    organizationSlug: "aura-restaurante",
+    specialPlanName: "Early Beta",
+    specialPrice: 54,
+    startedAt: new Date("2026-07-03T18:58:45.000Z"),
+    hasPaidInvoice: false,
+  },
+];
+
+const invoices: CollectedRevenueInvoice[] = [
+  {
+    id: "inv-1",
+    organizationRegistryId: "org-caravana",
+    organizationSlug: "caravana",
+    amount: 61.02,
+    currency: "USD",
+    status: "paid",
+    processedAt: "2026-10-04T14:06:41.000Z",
+    createdAt: new Date("2026-10-04T14:06:41.000Z"),
+  },
+];
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <RevenuePage />
+    </MemoryRouter>,
+  );
+}
+
+describe("RevenuePage", () => {
+  beforeEach(() => {
+    mockUseRevenue.mockReset();
+  });
+
+  it("shows a loading state", () => {
+    mockUseRevenue.mockReturnValue({ overview: null, isLoading: true, error: null });
+    renderPage();
+    expect(screen.getByText("Revenue")).toBeInTheDocument();
+  });
+
+  it("shows an error state", () => {
+    mockUseRevenue.mockReturnValue({
+      overview: null,
+      isLoading: false,
+      error: new Error("permission denied"),
+    });
+    renderPage();
+    expect(screen.getByText("Could not load data")).toBeInTheDocument();
+    expect(screen.getByText("permission denied")).toBeInTheDocument();
+  });
+
+  it("shows an empty state when there is nothing to report", () => {
+    mockUseRevenue.mockReturnValue({
+      overview: buildRevenueOverview([], [], NOW),
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    expect(screen.getByText("No revenue yet")).toBeInTheDocument();
+  });
+
+  it("renders contracted net and collected totals, and scales yearly as × 12", async () => {
+    const user = userEvent.setup();
+    mockUseRevenue.mockReturnValue({
+      overview: buildRevenueOverview(plans, invoices, NOW),
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(screen.getByText("Contracted monthly")).toBeInTheDocument();
+    expect(screen.getByText("$108.00")).toBeInTheDocument();
+    expect(screen.getByText(/Clients pay \$122\.04 with 13% IVA/)).toBeInTheDocument();
+    expect(screen.getByText("Collected this month")).toBeInTheDocument();
+    expect(screen.getAllByText("$61.02").length).toBeGreaterThan(0);
+    expect(screen.getByText("aura-restaurante")).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 organization has an active special plan but no paid card invoice/),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Yearly" }));
+
+    expect(screen.getByText("Contracted yearly")).toBeInTheDocument();
+    expect(screen.getByText("$1,296.00")).toBeInTheDocument();
+    expect(screen.getByText("Collected this year")).toBeInTheDocument();
+    expect(screen.getByText(/projection if every special plan stays/)).toBeInTheDocument();
+  });
+});

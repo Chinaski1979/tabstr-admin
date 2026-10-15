@@ -27,6 +27,8 @@ export const queryKeys = {
     ["organizationInvoices", orgRegistryId] as const,
   organizationSpecialPlan: (orgRegistryId: string) =>
     ["organizationSpecialPlan", orgRegistryId] as const,
+  /** Contracted special-plan MRR + collected invoice history */
+  revenue: () => ["revenue"] as const,
   /** Members in the tenant database for an org */
   organizationMembers: (orgRegistryId: string) =>
     ["organizationMembers", orgRegistryId] as const,
