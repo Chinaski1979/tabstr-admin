@@ -297,6 +297,62 @@ grant select on public.admin_users to authenticated;
 grant select, insert, update, delete on public.platform_messages to authenticated;
 grant select on public.platform_messages to anon;
 
+-- 10) founder metrics --------------------------------------------------------
+-- Full-access only. Monthly operating close plus an MRR snapshot taken when
+-- a month is closed. Invoices stay the source of collected cash.
+
+create table if not exists public.business_month_closes (
+  id uuid primary key default gen_random_uuid(),
+  month text not null,
+  cash_on_hand numeric(12, 2) not null default 0,
+  payroll numeric(12, 2) not null default 0,
+  infrastructure numeric(12, 2) not null default 0,
+  other_operating numeric(12, 2) not null default 0,
+  sales_marketing numeric(12, 2) not null default 0,
+  note text,
+  closed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint business_month_closes_month_unique unique (month),
+  constraint business_month_closes_month_format check (month ~ '^\d{4}-\d{2}$')
+);
+
+create table if not exists public.business_mrr_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  month text not null,
+  organization_registry_id uuid not null references public.organization_registry(id) on delete cascade,
+  organization_slug text not null,
+  special_price numeric(12, 2) not null,
+  is_active boolean not null,
+  subscription_status text,
+  created_at timestamptz not null default now(),
+  constraint business_mrr_snapshots_month_org_unique unique (month, organization_registry_id),
+  constraint business_mrr_snapshots_month_format check (month ~ '^\d{4}-\d{2}$')
+);
+
+create index if not exists business_mrr_snapshots_month_idx
+  on public.business_mrr_snapshots (month);
+
+alter table public.business_month_closes enable row level security;
+alter table public.business_mrr_snapshots enable row level security;
+
+drop policy if exists "business_month_closes_full_access" on public.business_month_closes;
+create policy "business_month_closes_full_access"
+  on public.business_month_closes for all
+  to authenticated
+  using (public.is_full_access_admin())
+  with check (public.is_full_access_admin());
+
+drop policy if exists "business_mrr_snapshots_full_access" on public.business_mrr_snapshots;
+create policy "business_mrr_snapshots_full_access"
+  on public.business_mrr_snapshots for all
+  to authenticated
+  using (public.is_full_access_admin())
+  with check (public.is_full_access_admin());
+
+grant select, insert, update, delete on public.business_month_closes to authenticated;
+grant select, insert, update, delete on public.business_mrr_snapshots to authenticated;
+
 -- Enum columns (billing_interval, admin_role) require USAGE on the type.
 grant usage on type public.billing_interval to authenticated;
 grant usage on type public.admin_role to authenticated;

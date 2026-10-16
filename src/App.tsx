@@ -11,6 +11,7 @@ import PlatformMessagesPage from "@/pages/PlatformMessagesPage";
 import SubscriptionsPage from "@/pages/SubscriptionsPage";
 import RevenuePage from "@/pages/RevenuePage";
 import AdminsPage from "@/pages/AdminsPage";
+import BusinessPage from "@/pages/BusinessPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
         {/* Full-access admins only */}
         <Route element={<ProtectedRoute requiredRole="full_access" />}>
           <Route element={<AppShell />}>
+            <Route path="business" element={<BusinessPage />} />
             <Route path="admins" element={<AdminsPage />} />
           </Route>
         </Route>

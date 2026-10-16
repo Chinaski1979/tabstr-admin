@@ -49,6 +49,15 @@ PowerTranz writes card rows (`recorded_by` null). Active admins insert/delete on
 
 Note: subscription tables use `organization_registry_id`; only `organization_features` uses `organization_id` for the same FK target.
 
+### Founder metrics (created by `admin_setup.sql`)
+
+Full-access admins only (`is_full_access_admin()`).
+
+- `business_month_closes`: `month` (`YYYY-MM`, unique), `cash_on_hand`, `payroll`, `infrastructure`, `other_operating`, `sales_marketing`, `note`, `closed_at`
+- `business_mrr_snapshots`: one row per organization per closed month (`month`, `organization_registry_id` unique together), `organization_slug`, `special_price`, `is_active`, `subscription_status`
+
+Collected cash is read from `subscription_invoices`. Closing a month rewrites that month's snapshot from current special plans.
+
 ### `admin_users` (created by `admin_setup.sql`)
 
 `id` (→ auth.users), `email`, `role`, `is_active`, `created_at`

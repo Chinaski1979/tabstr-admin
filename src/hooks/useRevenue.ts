@@ -41,6 +41,7 @@ function invalidatePaymentQueries(
   queryClient.invalidateQueries({ queryKey: queryKeys.revenue() });
   queryClient.invalidateQueries({ queryKey: queryKeys.revenueInvoicesRoot() });
   queryClient.invalidateQueries({ queryKey: queryKeys.organizationInvoices(orgRegistryId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.business() });
 }
 
 export function useCreateManualPayment() {
@@ -59,6 +60,7 @@ export function useCreateManualPayment() {
       } else {
         queryClient.invalidateQueries({ queryKey: queryKeys.revenue() });
         queryClient.invalidateQueries({ queryKey: queryKeys.revenueInvoicesRoot() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.business() });
       }
     },
     onError: (error: Error & { code?: string }) => {
