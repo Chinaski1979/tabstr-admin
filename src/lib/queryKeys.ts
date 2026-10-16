@@ -40,4 +40,14 @@ export const queryKeys = {
   globalPlatformMessages: () => ["globalPlatformMessages"] as const,
   organizationPlatformMessages: (orgRegistryId: string) =>
     ["organizationPlatformMessages", orgRegistryId] as const,
+
+  // Recursive organization delete (danger zone)
+  /** Capability (shared project + service key + live probe) per org project + slug. */
+  orgDeleteCapability: (supabaseUrl: string, organizationSlug: string) =>
+    ["orgDeleteCapability", supabaseUrl, organizationSlug] as const,
+  /** Dry-run plan per organization slug. */
+  orgDeleteDryRun: (slug: string) => ["orgDeleteDryRun", slug] as const,
+  /** Saved audit reports (localStorage) — prefix-invalidate with the root key. */
+  orgDeleteAuditReportsRoot: () => ["orgDeleteAuditReports"] as const,
+  orgDeleteAuditReports: (slug?: string) => ["orgDeleteAuditReports", slug ?? "all"] as const,
 } as const;

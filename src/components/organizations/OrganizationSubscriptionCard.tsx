@@ -25,6 +25,7 @@ import {
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
 import { RegisterPaymentDialog } from "@/components/revenue/RegisterPaymentDialog";
 import { useDeleteManualPayment } from "@/hooks/useRevenue";
+import { formatCurrency, formatDate, formatDateNotISO } from "@/lib/utils";
 import {
   useOrganizationInvoices,
   useOrganizationSpecialPlan,
@@ -151,7 +152,7 @@ export function OrganizationSubscriptionCard({
               }
             />
             <Detail label="Frequency" value={subscription.frequency ?? "—"} />
-            <Detail label="Next charge" value={formatDate(subscription.nextExecutionDate)} />
+            <Detail label="Next charge" value={formatDateNotISO(subscription.nextExecutionDate)} />
           </div>
         )}
 

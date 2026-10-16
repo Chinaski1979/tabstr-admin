@@ -35,6 +35,11 @@ export function useOrganization(id: string) {
   return { organization, isLoading, error };
 }
 
+function invalidateOrganization(queryClient: ReturnType<typeof useQueryClient>, org: OrganizationRegistry) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.organizations() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.organization(org.id) });
+}
+
 export function useSetOrganizationActive() {
   const queryClient = useQueryClient();
 
@@ -45,8 +50,7 @@ export function useSetOrganizationActive() {
       toast.success(org.isActive ? "Organization activated" : "Organization deactivated", {
         description: org.organizationSlug,
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.organizations() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.organization(org.id) });
+      invalidateOrganization(queryClient, org);
     },
     onError: (error: Error) => {
       toast.error("Could not update organization", { description: error.message });
@@ -54,4 +58,24 @@ export function useSetOrganizationActive() {
   });
 
   return { setActive: mutation.mutate, isUpdating: mutation.isPending };
+}
+
+export function useSetOrganizationSuspended() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: ({ id, isSuspended }: { id: string; isSuspended: boolean }) =>
+      organizationsService.setSuspended(id, isSuspended),
+    onSuccess: (org) => {
+      toast.success(org.isSuspended ? "Organization suspended" : "Organization unsuspended", {
+        description: org.organizationSlug,
+      });
+      invalidateOrganization(queryClient, org);
+    },
+    onError: (error: Error) => {
+      toast.error("Could not update organization", { description: error.message });
+    },
+  });
+
+  return { setSuspended: mutation.mutate, isUpdating: mutation.isPending };
 }

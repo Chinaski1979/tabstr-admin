@@ -24,7 +24,10 @@ Unique: `(organization_id, feature_id)` — required for admin upserts.
 
 Documented in tabstr `MULTI_DB.md` and used by `RegistryClient`:
 
-`id`, `organization_slug`, `supabase_url`, `supabase_anon_key`, `is_active`, `created_at`, `updated_at`
+`id`, `organization_slug`, `supabase_url`, `supabase_anon_key`, `is_active`, `is_suspended`, `created_at`, `updated_at`
+
+- `is_active = false` — hard block (POS registry lookups treat the org as unavailable).
+- `is_suspended = true` — soft restriction (login still works; POS may gate features).
 
 ### `feature_flags`
 
