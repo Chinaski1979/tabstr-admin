@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   Building2,
   CreditCard,
   LayoutDashboard,
@@ -24,5 +25,6 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/platform-messages", label: "Platform messages", icon: Megaphone },
   { to: "/subscriptions", label: "Subscriptions", icon: CreditCard },
   { to: "/revenue", label: "Revenue", icon: LineChart },
+  { to: "/business", label: "Business", icon: Briefcase, fullAccessOnly: true },
   { to: "/admins", label: "Administrators", icon: Users, fullAccessOnly: true },
 ];

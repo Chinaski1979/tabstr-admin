@@ -33,6 +33,8 @@ export const queryKeys = {
   revenueInvoicesRoot: () => ["revenueInvoices"] as const,
   /** Invoice rows for one UTC calendar month (`YYYY-MM`) */
   revenueInvoices: (month: string) => ["revenueInvoices", month] as const,
+  /** Founder scorecard: live health, monthly closes, MRR snapshots */
+  business: () => ["business"] as const,
   /** Members in the tenant database for an org */
   organizationMembers: (orgRegistryId: string) =>
     ["organizationMembers", orgRegistryId] as const,

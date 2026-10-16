@@ -275,6 +275,117 @@ export interface RevenueOverview {
   invoices: CollectedRevenueInvoice[];
 }
 
+export type AtRiskReason = "past_due" | "failed_invoice" | "unbilled";
+
+/** Latest subscription status used to flag a customer as past due. */
+export interface BusinessSubscriptionRef {
+  organizationRegistryId: string;
+  organizationSlug: string;
+  status: string;
+  createdAt: Date;
+}
+
+export interface BusinessAtRiskCustomer {
+  organizationRegistryId: string;
+  organizationSlug: string;
+  reasons: AtRiskReason[];
+}
+
+/** Live founder health for one calendar month. Amounts are special-plan price, ex-IVA. */
+export interface BusinessHealth {
+  month: string;
+  contractedMrr: number;
+  arrProjection: number;
+  activeCustomers: number;
+  /** Null when there are no active special plans. */
+  arpu: number | null;
+  newLogos: number;
+  /** Paid invoices reduced to special-plan price. */
+  collected: number;
+  paidCustomers: number;
+  /** Paid active plans / active plans. Null when there are no active plans. */
+  collectionRate: number | null;
+  atRisk: BusinessAtRiskCustomer[];
+}
+
+export interface BusinessMonthClose {
+  id: string;
+  /** UTC calendar month, `YYYY-MM`. */
+  month: string;
+  cashOnHand: number;
+  payroll: number;
+  infrastructure: number;
+  otherOperating: number;
+  salesMarketing: number;
+  note: string;
+  closedAt: Date | null;
+  updatedAt: Date;
+}
+
+export type CloseBusinessMonthInput = {
+  month: string;
+  cashOnHand: number;
+  payroll: number;
+  infrastructure: number;
+  otherOperating: number;
+  salesMarketing: number;
+  note: string;
+};
+
+/** One organization's contracted price at the moment a month was closed. */
+export interface MrrSnapshotOrg {
+  month: string;
+  organizationRegistryId: string;
+  organizationSlug: string;
+  specialPrice: number;
+  isActive: boolean;
+  subscriptionStatus: string | null;
+}
+
+export interface BusinessScorecard {
+  asOfMonth: string;
+  health: BusinessHealth;
+  plans: ContractedRevenuePlan[];
+  invoices: CollectedRevenueInvoice[];
+  closes: BusinessMonthClose[];
+  snapshots: MrrSnapshotOrg[];
+}
+
+export interface BurnResult {
+  grossBurn: number;
+  netBurn: number;
+  cashflowPositive: boolean;
+  /** Null when net burn is zero or negative. */
+  runwayMonths: number | null;
+  /** Null when there were no new logos. */
+  blendedCac: number | null;
+}
+
+export interface RetentionMovement {
+  startingMrr: number;
+  endingMrr: number;
+  newMrr: number;
+  expansionMrr: number;
+  contractionMrr: number;
+  churnedMrr: number;
+  startingLogos: number;
+  endingLogos: number;
+  churnedLogos: number;
+  /** Null when the month started with no logos. */
+  logoChurnRate: number | null;
+  grr: number | null;
+  nrr: number | null;
+}
+
+export interface CustomerValue {
+  /** Null until at least 3 logos churned in the trailing window and churn is above zero. */
+  ltv: number | null;
+  /** Null until LTV and a positive blended CAC exist for the same window. */
+  ltvCac: number | null;
+  churnedLogos: number;
+  monthsUsed: number;
+}
+
 // Organization provisioning types
 
 /**

@@ -30,6 +30,7 @@ describe("SidebarNav", () => {
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Organizations" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Revenue" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Business" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Administrators" })).not.toBeInTheDocument();
   });
 
@@ -38,6 +39,7 @@ describe("SidebarNav", () => {
     renderWithRouter(<SidebarNav />);
 
     expect(screen.getByRole("link", { name: "Revenue" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Business" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Administrators" })).toBeInTheDocument();
   });
 

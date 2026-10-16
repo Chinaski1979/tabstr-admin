@@ -22,6 +22,7 @@ export const STALE_TIME = {
   subscriptions: 1 * MIN,
   invoices: 1 * MIN,
   revenue: 1 * MIN,
+  business: 1 * MIN,
   organizationMembers: 1 * MIN,
   platformMessages: 1 * MIN,
   /** Delete capability (service key + live probe) — checked when a dialog opens. */
