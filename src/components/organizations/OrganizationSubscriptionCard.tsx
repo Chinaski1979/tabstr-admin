@@ -32,7 +32,6 @@ import {
   useOrganizationSubscription,
 } from "@/hooks/useSubscriptions";
 import { isManualInvoice, paymentMethodLabel } from "@/lib/revenue";
-import { formatCurrency, formatDate } from "@/lib/utils";
 import type { CollectedRevenueInvoice, ContractedRevenuePlan, SubscriptionInvoice } from "@/types";
 
 interface OrganizationSubscriptionCardProps {
