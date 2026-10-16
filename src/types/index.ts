@@ -5,7 +5,7 @@
  * Mapping happens in services — hooks and components only ever see these types.
  */
 
-/** Two admin tiers. `full_access` can see everything (e.g. future revenue views). */
+/** Two admin tiers. `full_access` can see contracted/collected KPI totals on /revenue. */
 export type AdminRole = "standard" | "full_access";
 
 export interface AdminUser {
@@ -194,16 +194,27 @@ export interface Subscription {
   createdAt: Date;
 }
 
+export type InvoicePaymentMethod = "card" | "transfer";
+
 export interface SubscriptionInvoice {
   id: string;
-  subscriptionId: string;
+  subscriptionId: string | null;
+  organizationRegistryId: string | null;
   amount: number;
   currency: string | null;
   status: string; // paid | failed | pending
+  paymentMethod: InvoicePaymentMethod;
+  recordedBy: string | null;
   powertranzTransactionId: string | null;
   processedAt: string | null;
   createdAt: Date;
 }
+
+export type CreateManualPaymentInput = {
+  organizationRegistryId: string;
+  paidOn: string; // YYYY-MM-DD
+  paymentMethod: InvoicePaymentMethod;
+};
 
 /** Costa Rica IVA applied on top of special_price when charging a card. */
 export const IVA_RATE = 0.13;
@@ -220,7 +231,7 @@ export interface ContractedRevenuePlan {
   hasPaidInvoice: boolean;
 }
 
-/** A registry invoice joined with its organization, for collected (inc-IVA) history. */
+/** A registry invoice joined with its organization, for collected history. */
 export interface CollectedRevenueInvoice {
   id: string;
   organizationRegistryId: string | null;
@@ -228,6 +239,8 @@ export interface CollectedRevenueInvoice {
   amount: number;
   currency: string | null;
   status: string;
+  paymentMethod: InvoicePaymentMethod;
+  recordedBy: string | null;
   processedAt: string | null;
   createdAt: Date;
 }

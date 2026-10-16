@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 
 /**
  * Guards routes that require an authenticated, active admin. Optionally enforces
- * a minimum role (e.g. `full_access` for revenue views).
+ * a minimum role (e.g. `full_access` for the administrators page).
  */
 export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
   const { loading, isAuthenticated, isActiveAdmin, hasRole } = useAuth();

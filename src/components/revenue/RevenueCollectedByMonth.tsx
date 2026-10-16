@@ -22,14 +22,14 @@ export function RevenueCollectedByMonth({ months }: RevenueCollectedByMonthProps
       <CardHeader>
         <CardTitle>Collected by month</CardTitle>
         <CardDescription>
-          Paid card invoices from the registry. Amounts include IVA. Bank transfers are not in this
-          table yet.
+          Paid invoices from the registry (card and transfer). Card amounts may include IVA;
+          transfers are recorded at the special-plan price.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {months.length === 0 ? (
           <EmptyState
-            title="No card invoices"
+            title="No invoices"
             description="Paid and failed charges will show here once they land in subscription_invoices."
           />
         ) : (

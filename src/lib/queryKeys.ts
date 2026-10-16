@@ -29,6 +29,10 @@ export const queryKeys = {
     ["organizationSpecialPlan", orgRegistryId] as const,
   /** Contracted special-plan MRR + collected invoice history */
   revenue: () => ["revenue"] as const,
+  /** Prefix that matches every month-scoped invoice query */
+  revenueInvoicesRoot: () => ["revenueInvoices"] as const,
+  /** Invoice rows for one UTC calendar month (`YYYY-MM`) */
+  revenueInvoices: (month: string) => ["revenueInvoices", month] as const,
   /** Members in the tenant database for an org */
   organizationMembers: (orgRegistryId: string) =>
     ["organizationMembers", orgRegistryId] as const,

@@ -100,7 +100,10 @@ export default function OrganizationDetailPage() {
           <OrganizationPlatformMessagesCard orgRegistryId={organization.id} />
         </TabsContent>
         <TabsContent value="subscription">
-          <OrganizationSubscriptionCard orgRegistryId={organization.id} />
+          <OrganizationSubscriptionCard
+            orgRegistryId={organization.id}
+            organizationSlug={organization.organizationSlug}
+          />
         </TabsContent>
       </Tabs>
       <OrganizationSpecialPlanCard orgRegistryId={organization.id} />

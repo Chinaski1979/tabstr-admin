@@ -70,10 +70,13 @@ function mapSpecialPlan(row: any): OrganizationSpecialPlan {
 function mapInvoice(row: any): SubscriptionInvoice {
   return {
     id: String(row.id),
-    subscriptionId: row.subscription_id,
+    subscriptionId: row.subscription_id ?? null,
+    organizationRegistryId: row.organization_registry_id ?? null,
     amount: Number(row.amount ?? 0),
     currency: row.currency ?? null,
     status: row.status ?? "pending",
+    paymentMethod: row.payment_method === "transfer" ? "transfer" : "card",
+    recordedBy: row.recorded_by ?? null,
     powertranzTransactionId: row.powertranz_transaction_id ?? null,
     processedAt: row.processed_at ?? null,
     createdAt: new Date(row.created_at),
@@ -315,11 +318,10 @@ export const subscriptionsService = {
     const { data, error } = await supabase
       .from("subscription_invoices")
       .select(
-        `id, subscription_id, amount, currency, status, powertranz_transaction_id,
-         processed_at, created_at,
-         subscriptions!inner(organization_registry_id)`,
+        `id, subscription_id, organization_registry_id, amount, currency, status,
+         payment_method, recorded_by, powertranz_transaction_id, processed_at, created_at`,
       )
-      .eq("subscriptions.organization_registry_id", orgRegistryId)
+      .eq("organization_registry_id", orgRegistryId)
       .order("processed_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
 

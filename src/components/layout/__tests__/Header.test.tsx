@@ -29,7 +29,7 @@ describe("SidebarNav", () => {
 
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Organizations" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Revenue" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Revenue" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Administrators" })).not.toBeInTheDocument();
   });
 
