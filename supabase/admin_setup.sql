@@ -293,7 +293,7 @@ grant select, insert, update, delete on public.subscription_plan_prices to authe
 grant select, insert, update, delete on public.subscriptions to authenticated;
 grant select, insert, update, delete on public.organization_special_plans to authenticated;
 grant select, insert, update, delete on public.subscription_invoices to authenticated;
-grant select on public.admin_users to authenticated;
+grant select, insert, update, delete on public.admin_users to authenticated;
 grant select, insert, update, delete on public.platform_messages to authenticated;
 grant select on public.platform_messages to anon;
 

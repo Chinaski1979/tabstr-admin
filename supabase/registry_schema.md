@@ -62,6 +62,8 @@ Collected cash is read from `subscription_invoices`. Closing a month rewrites th
 
 `id` (→ auth.users), `email`, `role`, `is_active`, `created_at`
 
+Full-access admins can insert/update/delete rows (RLS + table GRANT). Deleting a row revokes admin console access; it does not delete the Auth user.
+
 ### `platform_messages` (created by `platform_messages.sql`)
 
 | Column | Type | Notes |

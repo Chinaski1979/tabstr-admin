@@ -37,4 +37,11 @@ export const adminUsersService = {
     if (error) throw error;
     return (data ?? []).map(mapRow);
   },
+
+  /** Removes an admin_users row. Does not delete the Auth user. Full-access only (RLS). */
+  async delete(id: string): Promise<void> {
+    const supabase = getRegistryClient();
+    const { error } = await supabase.from("admin_users").delete().eq("id", id);
+    if (error) throw error;
+  },
 };

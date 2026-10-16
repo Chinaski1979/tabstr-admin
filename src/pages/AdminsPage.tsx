@@ -10,17 +10,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LoadingState, ErrorState, EmptyState } from "@/components/common/StateViews";
+import { DeleteAdminUserButton } from "@/components/admins/DeleteAdminUserButton";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
+import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/utils";
 
 export default function AdminsPage() {
   const { admins, isLoading, error } = useAdminUsers();
+  const { user, isFullAccess } = useAuth();
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Administrators"
-        description="Admin accounts. Create new admins from the registry Supabase Auth dashboard, then add a row in admin_users."
+        description="Admin accounts. Create new admins from the registry Supabase Auth dashboard, then add a row in admin_users. Full-access admins can remove others."
       />
       <Card>
         <CardContent className="p-0">
@@ -35,6 +38,7 @@ export default function AdminsPage() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
+                  {isFullAccess && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -52,6 +56,14 @@ export default function AdminsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{formatDate(admin.createdAt)}</TableCell>
+                    {isFullAccess && (
+                      <TableCell className="text-right">
+                        <DeleteAdminUserButton
+                          admin={admin}
+                          isCurrentUser={admin.id === user?.id}
+                        />
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
