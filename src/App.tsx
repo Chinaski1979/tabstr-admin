@@ -28,13 +28,13 @@ export default function App() {
             <Route path="feature-flags" element={<FeatureFlagsPage />} />
             <Route path="platform-messages" element={<PlatformMessagesPage />} />
             <Route path="subscriptions" element={<SubscriptionsPage />} />
+            <Route path="revenue" element={<RevenuePage />} />
           </Route>
         </Route>
 
         {/* Full-access admins only */}
         <Route element={<ProtectedRoute requiredRole="full_access" />}>
           <Route element={<AppShell />}>
-            <Route path="revenue" element={<RevenuePage />} />
             <Route path="admins" element={<AdminsPage />} />
           </Route>
         </Route>

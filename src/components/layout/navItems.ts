@@ -23,6 +23,6 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/feature-flags", label: "Feature flags", icon: ToggleLeft },
   { to: "/platform-messages", label: "Platform messages", icon: Megaphone },
   { to: "/subscriptions", label: "Subscriptions", icon: CreditCard },
-  { to: "/revenue", label: "Revenue", icon: LineChart, fullAccessOnly: true },
+  { to: "/revenue", label: "Revenue", icon: LineChart },
   { to: "/admins", label: "Administrators", icon: Users, fullAccessOnly: true },
 ];

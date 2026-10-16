@@ -4,15 +4,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { buildRevenueOverview } from "@/lib/revenue";
 
-const { mockGetOverview } = vi.hoisted(() => ({
+const { mockGetOverview, mockGetInvoicesForMonth } = vi.hoisted(() => ({
   mockGetOverview: vi.fn(),
+  mockGetInvoicesForMonth: vi.fn(),
 }));
 
 vi.mock("@/services/revenue/revenueService", () => ({
-  revenueService: { getOverview: mockGetOverview },
+  revenueService: {
+    getOverview: mockGetOverview,
+    getInvoicesForMonth: mockGetInvoicesForMonth,
+  },
 }));
 
-import { useRevenue } from "@/hooks/useRevenue";
+import { useRevenue, useRevenueInvoices } from "@/hooks/useRevenue";
 
 function createWrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -24,6 +28,7 @@ function createWrapper() {
 describe("useRevenue", () => {
   beforeEach(() => {
     mockGetOverview.mockReset();
+    mockGetInvoicesForMonth.mockReset();
   });
 
   it("returns the overview from the service", async () => {
@@ -52,5 +57,38 @@ describe("useRevenue", () => {
 
     expect(result.current.overview).toBeNull();
     expect((result.current.error as Error).message).toBe("RLS denied");
+  });
+});
+
+describe("useRevenueInvoices", () => {
+  beforeEach(() => {
+    mockGetInvoicesForMonth.mockReset();
+  });
+
+  it("loads invoices for the selected month", async () => {
+    const invoices = [
+      {
+        id: "inv-1",
+        organizationRegistryId: "org-1",
+        organizationSlug: "acme",
+        amount: 61.02,
+        currency: "USD",
+        status: "paid",
+        paymentMethod: "card" as const,
+        recordedBy: null,
+        processedAt: "2026-10-04T14:06:41.000Z",
+        createdAt: new Date("2026-10-04T14:06:41.000Z"),
+      },
+    ];
+    mockGetInvoicesForMonth.mockResolvedValue(invoices);
+
+    const { result } = renderHook(() => useRevenueInvoices("2026-10"), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.invoices).toEqual(invoices);
+    expect(mockGetInvoicesForMonth).toHaveBeenCalledWith("2026-10");
   });
 });

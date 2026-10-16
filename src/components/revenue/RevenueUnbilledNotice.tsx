@@ -15,9 +15,8 @@ export function RevenueUnbilledNotice({ plans }: RevenueUnbilledNoticeProps) {
     <Card>
       <CardContent className="pt-6 text-sm text-muted-foreground">
         {unbilled.length === 1 ? "1 organization has" : `${unbilled.length} organizations have`} an
-        active special plan but no paid card invoice ({slugs}). Bank transfers are not recorded in
-        subscription_invoices yet, so they count toward contracted revenue and not collected
-        history.
+        active special plan but no paid invoice ({slugs}). Register a transfer (or card) payment so
+        they count toward collected history.
       </CardContent>
     </Card>
   );

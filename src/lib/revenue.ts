@@ -30,6 +30,23 @@ export function yearKey(date: Date): string {
   return String(date.getUTCFullYear());
 }
 
+/** Inclusive start / exclusive end ISO timestamps for a `YYYY-MM` UTC month. */
+export function monthUtcRange(month: string): { start: string; end: string } {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const start = new Date(Date.UTC(year, monthNumber - 1, 1));
+  const end = new Date(Date.UTC(year, monthNumber, 1));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+export function invoiceMonthOptions(
+  byMonth: CollectedRevenueMonth[],
+  now: Date = new Date(),
+): string[] {
+  const months = new Set(byMonth.map((row) => row.month));
+  months.add(monthKey(now));
+  return [...months].sort((a, b) => b.localeCompare(a));
+}
+
 export function formatMonthLabel(month: string): string {
   const date = new Date(`${month}-01T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return month;
@@ -46,6 +63,33 @@ export function isPaidStatus(status: string): boolean {
 
 export function isFailedStatus(status: string): boolean {
   return status.toLowerCase() === "failed";
+}
+
+export function isManualInvoice(invoice: { recordedBy: string | null }): boolean {
+  return Boolean(invoice.recordedBy);
+}
+
+export function paymentMethodLabel(method: string): string {
+  return method === "transfer" ? "Transfer" : "Card";
+}
+
+/** Noon UTC so a YYYY-MM-DD picker value stays in that calendar month in UTC. */
+export function processedAtFromPaidOn(paidOn: string): string {
+  return `${paidOn}T12:00:00.000Z`;
+}
+
+export function hasPaidInvoiceInMonth(
+  invoices: CollectedRevenueInvoice[],
+  organizationRegistryId: string,
+  paidOn: string,
+): boolean {
+  const month = paidOn.slice(0, 7);
+  return invoices.some(
+    (invoice) =>
+      invoice.organizationRegistryId === organizationRegistryId &&
+      isPaidStatus(invoice.status) &&
+      monthKey(invoiceOccurredAt(invoice)) === month,
+  );
 }
 
 export function isRevenueEmpty(overview: RevenueOverview): boolean {

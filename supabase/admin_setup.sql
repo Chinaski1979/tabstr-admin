@@ -131,7 +131,8 @@ begin
 end $$;
 
 -- 7) subscriptions / plans / invoices ----------------------------------------
--- subscription_invoices: read-only for admins (written by PowerTranz / backend).
+-- subscription_invoices: PowerTranz writes card rows. Active admins may
+-- insert/update/delete *manual* rows (recorded_by set) for bank transfers.
 
 drop policy if exists "subscriptions_admin_select" on public.subscriptions;
 drop policy if exists "subscriptions_admin_insert" on public.subscriptions;
@@ -143,12 +144,91 @@ create policy "subscriptions_admin"
   using (public.is_active_admin())
   with check (public.is_active_admin());
 
+alter table public.subscription_invoices
+  add column if not exists organization_registry_id uuid;
+
+alter table public.subscription_invoices
+  add column if not exists payment_method text not null default 'card';
+
+alter table public.subscription_invoices
+  add column if not exists recorded_by uuid;
+
+update public.subscription_invoices i
+set organization_registry_id = s.organization_registry_id
+from public.subscriptions s
+where i.subscription_id = s.id
+  and i.organization_registry_id is null;
+
+update public.subscription_invoices
+set payment_method = 'card'
+where payment_method is null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'subscription_invoices_organization_registry_id_fkey'
+  ) then
+    alter table public.subscription_invoices
+      add constraint subscription_invoices_organization_registry_id_fkey
+      foreign key (organization_registry_id) references public.organization_registry(id);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'subscription_invoices_recorded_by_fkey'
+  ) then
+    alter table public.subscription_invoices
+      add constraint subscription_invoices_recorded_by_fkey
+      foreign key (recorded_by) references auth.users(id);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'subscription_invoices_payment_method_check'
+  ) then
+    alter table public.subscription_invoices
+      add constraint subscription_invoices_payment_method_check
+      check (payment_method in ('card', 'transfer'));
+  end if;
+
+  if not exists (
+    select 1 from public.subscription_invoices where organization_registry_id is null
+  ) then
+    alter table public.subscription_invoices
+      alter column organization_registry_id set not null;
+  end if;
+end $$;
+
 drop policy if exists "subscription_invoices_admin_select" on public.subscription_invoices;
 drop policy if exists "subscription_invoices_admin" on public.subscription_invoices;
-create policy "subscription_invoices_admin"
+drop policy if exists "subscription_invoices_admin_insert" on public.subscription_invoices;
+drop policy if exists "subscription_invoices_admin_update" on public.subscription_invoices;
+drop policy if exists "subscription_invoices_admin_delete" on public.subscription_invoices;
+create policy "subscription_invoices_admin_select"
   on public.subscription_invoices for select
   to authenticated
   using (public.is_active_admin());
+
+create policy "subscription_invoices_admin_insert"
+  on public.subscription_invoices for insert
+  to authenticated
+  with check (
+    public.is_active_admin()
+    and recorded_by is not null
+    and recorded_by = auth.uid()
+  );
+
+create policy "subscription_invoices_admin_update"
+  on public.subscription_invoices for update
+  to authenticated
+  using (public.is_active_admin() and recorded_by is not null)
+  with check (public.is_active_admin() and recorded_by is not null);
+
+create policy "subscription_invoices_admin_delete"
+  on public.subscription_invoices for delete
+  to authenticated
+  using (public.is_active_admin() and recorded_by is not null);
 
 drop policy if exists "subscription_plans_admin_select" on public.subscription_plans;
 drop policy if exists "subscription_plans_admin_insert" on public.subscription_plans;
@@ -212,7 +292,7 @@ grant select, insert, update, delete on public.subscription_plans to authenticat
 grant select, insert, update, delete on public.subscription_plan_prices to authenticated;
 grant select, insert, update, delete on public.subscriptions to authenticated;
 grant select, insert, update, delete on public.organization_special_plans to authenticated;
-grant select on public.subscription_invoices to authenticated;
+grant select, insert, update, delete on public.subscription_invoices to authenticated;
 grant select on public.admin_users to authenticated;
 grant select, insert, update, delete on public.platform_messages to authenticated;
 grant select on public.platform_messages to anon;
