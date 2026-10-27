@@ -8,6 +8,7 @@ export {
   verifyExecSql,
   buildDryRunPlan,
   executeOrgDelete,
+  executeRegistryOnlyDelete,
 } from "./orgDeleteService";
 export { saveAuditReport, listAuditReports, downloadAuditReport } from "./orgDeleteAudit";
 export {

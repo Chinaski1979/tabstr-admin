@@ -401,6 +401,8 @@ export interface OrgDeleteCapability {
   enabled: boolean;
   /** Why deletion is disabled (English, shown as the button tooltip). */
   reason?: string;
+  /** Discriminating field for disabled reasons. */
+  disabledReason?: "not-on-shared-project" | "missing-service-key" | "invalid-service-key" | null;
   projectId?: string;
   envVar?: string;
 }

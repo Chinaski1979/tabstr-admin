@@ -16,8 +16,12 @@ interface DeleteOrganizationButtonProps {
 
 /**
  * Destructive trigger for the recursive delete flow (renders its own dialog).
- * Hidden behind the `full_access` admin tier and disabled (with the reason as
- * tooltip) when the org is not on a shared project or its service key is missing.
+ * Hidden behind the `full_access` admin tier.
+ * - For standard admins: always disabled.
+ * - For full-access admins:
+ *   - Enabled when capability.enabled (full recursive delete on shared project)
+ *   - Enabled when capability.disabled with reason "not on a configured shared project" (registry-only delete)
+ *   - Disabled when capability.disabled for other reasons (e.g., missing service key)
  */
 export function DeleteOrganizationButton({
   organization,
@@ -28,11 +32,23 @@ export function DeleteOrganizationButton({
 
   const { isFullAccess } = useAuth();
   const { capability, isLoading } = useOrgDeleteCapability(organization);
+
+  const isRegistryOnlyCase =
+    isFullAccess &&
+    !capability.enabled &&
+    capability.disabledReason === "not-on-shared-project";
+
+  const isEnabled = isFullAccess && !isLoading && (capability.enabled || isRegistryOnlyCase);
+
   const reason = !isFullAccess
     ? "Only full-access admins can delete organizations."
     : isLoading
       ? "Checking deletion capability…"
-      : capability.reason;
+      : capability.enabled
+        ? "Full recursive delete available"
+        : isRegistryOnlyCase
+          ? "Registry-only delete available (not on shared project)"
+          : capability.reason;
 
   return (
     <>
@@ -40,7 +56,7 @@ export function DeleteOrganizationButton({
         <Button
           variant="destructive"
           size={size}
-          disabled={!isFullAccess || isLoading || !capability.enabled}
+          disabled={!isEnabled}
           aria-label={`Delete organization ${organization.organizationSlug}`}
           onClick={() => setOpen(true)}
         >

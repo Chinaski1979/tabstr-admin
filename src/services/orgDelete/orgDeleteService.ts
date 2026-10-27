@@ -51,13 +51,23 @@ export function checkDeleteCapability(
 ): OrgDeleteCapability {
   const project = findSharedProjectByUrl(org.supabaseUrl);
   if (!project) {
-    return { enabled: false, reason: "This organization is not on a configured shared project" };
+    return { 
+      enabled: false, 
+      reason: "This organization is not on a configured shared project",
+      disabledReason: "not-on-shared-project"
+    };
   }
 
   const { id: projectId, serviceKeyEnvVar: envVar } = project;
   const serviceKey = readServiceKey(envVar);
   if (!serviceKey) {
-    return { enabled: false, reason: `Missing ${envVar} for this project`, projectId, envVar };
+    return { 
+      enabled: false, 
+      reason: `Missing ${envVar} for this project`, 
+      disabledReason: "missing-service-key",
+      projectId, 
+      envVar 
+    };
   }
 
   try {
@@ -66,12 +76,13 @@ export function checkDeleteCapability(
     return {
       enabled: false,
       reason: toMessage(error),
+      disabledReason: "invalid-service-key",
       projectId,
       envVar,
     };
   }
 
-  return { enabled: true, projectId, envVar };
+  return { enabled: true, disabledReason: null, projectId, envVar };
 }
 
 /**
@@ -688,4 +699,131 @@ export async function executeOrgDelete(
   }
 
   return finishReport(false, null);
+}
+
+/**
+ * Registry-only delete for organizations NOT on shared projects.
+ * 
+ * This function ONLY deletes from the registry database (organization_registry and
+ * related tables). It does NOT touch any tenant database.
+ * 
+ * Requirements:
+ * - confirmSlug must match org.organizationSlug
+ * - Current admin must have full_access role
+ * - Uses getRegistryClient() (anon key) only - NO service role key
+ * - Deletes registry tables in FK order (children first):
+ *   - subscription_invoices (via subquery on subscriptions where organization_slug)
+ *   - organization_features (where organization_slug)
+ *   - subscriptions (where organization_slug)
+ *   - organization_special_plans (where organization_slug)
+ *   - organization_registry (where slug = org.organizationSlug) - LAST
+ * - Handles RLS 42501 errors gracefully (marks as pending-server-side with manual SQL)
+ * - Throws on guard failures: confirmation mismatch, not full_access admin
+ * 
+ * Returns result compatible with existing AuditReport structure (success, errors, registryCleanup array)
+ */
+export async function executeRegistryOnlyDelete(
+  org: OrganizationRegistry,
+  confirmSlug: string,
+  userId: string,
+): Promise<AuditReport> {
+  // Guard 0: Must have authenticated user
+  if (!userId || userId.trim() === "") {
+    throw new Error("No authenticated user — cannot delete");
+  }
+
+  // Guard 1: Confirmation slug must match
+  if (confirmSlug !== org.organizationSlug) {
+    throw new Error("Confirmation slug does not match this organization");
+  }
+
+  // Guard 2: Must be full_access admin
+  const isFullAccess = await isFullAccessAdmin(userId);
+  if (!isFullAccess) {
+    throw new Error("Registry-only delete requires full_access admin role");
+  }
+
+  const startedAtMs = Date.now();
+  const startedAt = new Date(startedAtMs).toISOString();
+  const slug = org.organizationSlug;
+  const errors: string[] = [];
+
+  // Phase 0: fetch registry org ID
+  const registry = await fetchRegistryOrg(slug);
+  if (registry.error) {
+    errors.push(registry.error);
+  }
+  const orgRegistryId = registry.orgRegistryId;
+
+  // Registry cleanup (Phase 3 only) - no project DB operations
+  let registryCleanup: RegistryCleanupResult[];
+
+  if (!orgRegistryId) {
+    registryCleanup = REGISTRY_TABLES.map((descriptor) => ({
+      ...descriptor,
+      status: "skipped" as const,
+      rowCount: null,
+      reason: `Not attempted — ${registry.error ?? `Organization "${slug}" not found in organization_registry`}`,
+    }));
+  } else {
+    try {
+      registryCleanup = await runRegistryCleanup(org, orgRegistryId);
+    } catch (error) {
+      const message = toMessage(error);
+      errors.push(`Registry cleanup failed: ${message}`);
+      registryCleanup = REGISTRY_TABLES.map((descriptor) => ({
+        ...descriptor,
+        status: "skipped" as const,
+        rowCount: null,
+        reason: `Not attempted — ${message}`,
+      }));
+    }
+  }
+
+  const finishedAtMs = Date.now();
+  const hasFailedRegistryRow = registryCleanup.some((r) => r.status === "failed");
+
+  return {
+    id: `${slug}-${finishedAtMs}-${Math.random().toString(36).slice(2, 8)}`,
+    slug,
+    orgRegistryId: registry.orgRegistryId,
+    orgId: "", // Not applicable for registry-only delete
+    projectId: "", // Not applicable for registry-only delete
+    startedAt,
+    finishedAt: new Date(finishedAtMs).toISOString(),
+    durationMs: finishedAtMs - startedAtMs,
+    aborted: false,
+    abortReason: null,
+    success:
+      errors.length === 0 &&
+      !hasFailedRegistryRow,
+    phase2DeleteOk: false, // Not applicable for registry-only delete
+    execSqlPresent: false, // Not applicable for registry-only delete
+    counts: [], // Not applicable for registry-only delete
+    orgUsers: [], // Not applicable for registry-only delete
+    executedSql: [], // Not applicable for registry-only delete
+    triggersReenabled: true, // Not applicable for registry-only delete
+    triggerErrors: [],
+    registryCleanup,
+    errors,
+  };
+}
+
+/**
+ * Checks if the given user ID corresponds to a full_access admin.
+ * Queries the admin_users table directly (uses anon key via RLS).
+ * 
+ * @param userId - The auth user ID to check
+ * @returns true if the user is an active full_access admin, false otherwise
+ */
+async function isFullAccessAdmin(userId: string): Promise<boolean> {
+  const supabase = getRegistryClient();
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("role, is_active")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) return false;
+  return data.is_active === true && data.role === "full_access";
 }

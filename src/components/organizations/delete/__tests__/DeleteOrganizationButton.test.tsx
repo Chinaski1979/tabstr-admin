@@ -2,13 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 
-const { mockUseAuth, mockUseOrgDeleteCapability, mockUseOrgDeleteDryRun, mockUseExecuteOrgDelete } =
-  vi.hoisted(() => ({
-    mockUseAuth: vi.fn(),
-    mockUseOrgDeleteCapability: vi.fn(),
-    mockUseOrgDeleteDryRun: vi.fn(),
-    mockUseExecuteOrgDelete: vi.fn(),
-  }));
+const {
+  mockUseAuth,
+  mockUseOrgDeleteCapability,
+  mockUseOrgDeleteDryRun,
+  mockUseExecuteOrgDelete,
+  mockUseExecuteRegistryOnlyDelete,
+} = vi.hoisted(() => ({
+  mockUseAuth: vi.fn(),
+  mockUseOrgDeleteCapability: vi.fn(),
+  mockUseOrgDeleteDryRun: vi.fn(),
+  mockUseExecuteOrgDelete: vi.fn(),
+  mockUseExecuteRegistryOnlyDelete: vi.fn(),
+}));
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: mockUseAuth,
@@ -18,6 +24,7 @@ vi.mock("@/hooks/useOrgDelete", () => ({
   useOrgDeleteCapability: mockUseOrgDeleteCapability,
   useOrgDeleteDryRun: mockUseOrgDeleteDryRun,
   useExecuteOrgDelete: mockUseExecuteOrgDelete,
+  useExecuteRegistryOnlyDelete: mockUseExecuteRegistryOnlyDelete,
 }));
 
 import { DeleteOrganizationButton } from "../DeleteOrganizationButton";
@@ -38,9 +45,15 @@ beforeEach(() => {
   mockUseAuth.mockReset();
   mockUseAuth.mockReturnValue({ isFullAccess: true });
   mockUseOrgDeleteCapability.mockReset();
-  // The button may render the dialog internally — stub the sibling hooks too.
   mockUseOrgDeleteDryRun.mockReturnValue({ plan: undefined, isLoading: false, error: null });
   mockUseExecuteOrgDelete.mockReturnValue({
+    execute: vi.fn(),
+    isExecuting: false,
+    report: null,
+    error: null,
+    reset: vi.fn(),
+  });
+  mockUseExecuteRegistryOnlyDelete.mockReturnValue({
     execute: vi.fn(),
     isExecuting: false,
     report: null,
@@ -117,6 +130,53 @@ describe("DeleteOrganizationButton", () => {
     expect(screen.getByRole("button", { name: /delete organization acme/i })).toBeDisabled();
     expect(container.querySelector("span[title]")?.getAttribute("title")).toBe(
       "Only full-access admins can delete organizations.",
+    );
+  });
+
+  it("is enabled for full-access admins when org is not on shared project (registry-only mode)", () => {
+    mockUseOrgDeleteCapability.mockReturnValue({
+      capability: {
+        enabled: false,
+        reason: "This organization is not on a configured shared project",
+        disabledReason: "not-on-shared-project",
+        liveProbe: "skipped",
+      },
+      isLoading: false,
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <DeleteOrganizationButton organization={ORG} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: /delete organization acme/i })).toBeEnabled();
+    const wrapper = container.querySelector("span[title]");
+    expect(wrapper?.getAttribute("title")).toBe(
+      "Registry-only delete available (not on shared project)",
+    );
+  });
+
+  it("is disabled for full-access admins when capability disabled for other reasons", () => {
+    mockUseOrgDeleteCapability.mockReturnValue({
+      capability: {
+        enabled: false,
+        reason: "Missing VITE_SHARED_PROJECT_1_SERVICE_KEY for this project",
+        liveProbe: "skipped",
+      },
+      isLoading: false,
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <DeleteOrganizationButton organization={ORG} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: /delete organization acme/i })).toBeDisabled();
+    const wrapper = container.querySelector("span[title]");
+    expect(wrapper?.getAttribute("title")).toBe(
+      "Missing VITE_SHARED_PROJECT_1_SERVICE_KEY for this project",
     );
   });
 });
