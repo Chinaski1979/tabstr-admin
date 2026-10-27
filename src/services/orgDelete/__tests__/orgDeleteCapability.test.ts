@@ -42,6 +42,7 @@ describe("checkDeleteCapability", () => {
     const capability = checkDeleteCapability(orgWithUrl(PROJECT_1_URL));
     expect(capability).toEqual({
       enabled: true,
+      disabledReason: null,
       projectId: "project-1",
       envVar: "VITE_SHARED_PROJECT_1_SERVICE_KEY",
     });

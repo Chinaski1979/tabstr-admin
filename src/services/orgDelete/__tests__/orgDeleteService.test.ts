@@ -15,7 +15,7 @@ vi.mock("@/services/provisioning/orgAdminClient", () => ({
   assertServiceRoleKey: vi.fn(),
 }));
 
-import { buildDryRunPlan, executeOrgDelete, probeDeleteCapability, verifyExecSql } from "../orgDeleteService";
+import { buildDryRunPlan, executeOrgDelete, executeRegistryOnlyDelete, probeDeleteCapability, verifyExecSql } from "../orgDeleteService";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OrganizationRegistry } from "@/types";
 
@@ -632,5 +632,219 @@ describe("buildDryRunPlan — read-only guarantee", () => {
     expect(registry.fromCalls.every((c) => c.op === "select")).toBe(true);
     // The only SQL sent through exec_sql is the read-only probe.
     expect(project.rpcCalls.map((c) => c.params.sql)).toEqual(["select 1"]);
+  });
+});
+
+describe("executeRegistryOnlyDelete — guards", () => {
+  it("throws when userId is empty", async () => {
+    await expect(executeRegistryOnlyDelete(ORG, "acme", "")).rejects.toThrow(
+      /No authenticated user/i
+    );
+  });
+
+  it("throws when the confirmation slug does not match", async () => {
+    await expect(executeRegistryOnlyDelete(ORG, "wrong-slug", "user-123")).rejects.toThrow(
+      /Confirmation slug does not match/i
+    );
+  });
+
+  it("throws when the user is not a full_access admin", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: { role: "standard", is_active: true } };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    await expect(executeRegistryOnlyDelete(ORG, "acme", "user-123")).rejects.toThrow(
+      /full_access admin role/i
+    );
+  });
+});
+
+describe("executeRegistryOnlyDelete — execution", () => {
+  it("skips cleanup when org not found in registry, success=false", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: { role: "full_access", is_active: true } };
+          }
+          if (ctx.table === "organization_registry" && ctx.op === "select") {
+            return { data: null };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    const report = await executeRegistryOnlyDelete(ORG, "acme", "user-123");
+
+    expect(report.success).toBe(false);
+    expect(report.errors.length).toBeGreaterThan(0);
+    expect(report.errors[0]).toContain("not found in organization_registry");
+    expect(report.registryCleanup.every((r) => r.status === "skipped")).toBe(true);
+    expect(report.orgId).toBe("");
+    expect(report.projectId).toBe("");
+    expect(report.phase2DeleteOk).toBe(false);
+  });
+
+  it("marks registry cleanup as skipped when cleanup throws, success=false", async () => {
+    // executeRegistryOnlyDelete calls getRegistryClient 3 times:
+    //   1. isFullAccessAdmin (admin_users query)
+    //   2. fetchRegistryOrg (organization_registry lookup)
+    //   3. runRegistryCleanup (all the delete attempts)
+    // We want call #3 to throw to exercise the catch block.
+    let callCount = 0;
+    const lookupMock = createSupabaseMock({
+      from(ctx: FromContext) {
+        if (ctx.table === "admin_users" && ctx.op === "select") {
+          return { data: { role: "full_access", is_active: true } };
+        }
+        if (ctx.table === "organization_registry" && ctx.op === "select") {
+          return { data: [{ id: REGISTRY_ID }] };
+        }
+        return { data: [], error: null };
+      },
+    });
+    mockGetRegistryClient.mockImplementation(() => {
+      callCount += 1;
+      if (callCount >= 3) {
+        throw new Error("Network failure");
+      }
+      return lookupMock;
+    });
+
+    const report = await executeRegistryOnlyDelete(ORG, "acme", "user-123");
+
+    expect(report.success).toBe(false);
+    expect(report.errors.length).toBeGreaterThan(0);
+    expect(report.errors[0]).toContain("Registry cleanup failed");
+    expect(report.registryCleanup.every((r) => r.status === "skipped")).toBe(true);
+    expect(report.registryCleanup[0].reason).toContain("Network failure");
+  });
+
+  it("returns success=true with registryCleanup populated on happy path", async () => {
+    const { registry } = installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: { role: "full_access", is_active: true } };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    const report = await executeRegistryOnlyDelete(ORG, "acme", "user-123");
+
+    expect(report.success).toBe(true);
+    expect(report.errors).toHaveLength(0);
+    expect(report.orgRegistryId).toBe(REGISTRY_ID);
+    expect(report.registryCleanup.length).toBeGreaterThan(0);
+    
+    const allowed = report.registryCleanup.filter((r) => r.disposition === "allowed");
+    const pending = report.registryCleanup.filter((r) => r.disposition === "pending-server-side");
+    
+    expect(allowed.every((r) => r.status === "deleted")).toBe(true);
+    expect(pending.every((r) => r.status === "pending-server-side")).toBe(true);
+    
+    // Verify registry deletes happened
+    const deletes = registry.fromCalls.filter((c) => c.op === "delete");
+    expect(deletes.length).toBeGreaterThan(0);
+    expect(deletes[deletes.length - 1].table).toBe("organization_registry");
+  });
+});
+
+describe("isFullAccessAdmin", () => {
+  it("returns false when admin_users query errors", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users") {
+            return { data: null, error: { message: "RLS denied" } };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    // Import the function directly to test it - need to access it through executeRegistryOnlyDelete
+    // since it's private. Instead, we test the behavior through executeRegistryOnlyDelete guard.
+    await expect(executeRegistryOnlyDelete(ORG, "acme", "user-123")).rejects.toThrow(
+      /full_access admin role/i
+    );
+  });
+
+  it("returns false when data is null", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: null };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    await expect(executeRegistryOnlyDelete(ORG, "acme", "user-123")).rejects.toThrow(
+      /full_access admin role/i
+    );
+  });
+
+  it("returns false when user is inactive", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: { role: "full_access", is_active: false } };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    await expect(executeRegistryOnlyDelete(ORG, "acme", "user-123")).rejects.toThrow(
+      /full_access admin role/i
+    );
+  });
+
+  it("returns false when role is standard", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: { role: "standard", is_active: true } };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    await expect(executeRegistryOnlyDelete(ORG, "acme", "user-123")).rejects.toThrow(
+      /full_access admin role/i
+    );
+  });
+
+  it("returns true when user is active full_access admin", async () => {
+    installClients({
+      registry: {
+        from(ctx: FromContext) {
+          if (ctx.table === "admin_users" && ctx.op === "select") {
+            return { data: { role: "full_access", is_active: true } };
+          }
+          return registryFromHandler(ctx);
+        },
+      },
+    });
+
+    // Should not throw
+    const report = await executeRegistryOnlyDelete(ORG, "acme", "user-123");
+    expect(report).toBeDefined();
   });
 });

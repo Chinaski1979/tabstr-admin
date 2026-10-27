@@ -6,10 +6,12 @@ import { STALE_TIME } from "@/lib/queryCacheConfig";
 import {
   buildDryRunPlan,
   executeOrgDelete,
+  executeRegistryOnlyDelete,
   listAuditReports,
   probeDeleteCapability,
   saveAuditReport,
 } from "@/services/orgDelete";
+import { useAuthStore } from "@/stores/authStore";
 import type { AuditReport, DryRunPlan, OrgDeleteCapabilityProbe, OrganizationRegistry } from "@/types";
 
 /**
@@ -153,4 +155,64 @@ export function useOrgDeleteAuditReports(slug?: string) {
   });
 
   return { reports: data };
+}
+
+/**
+ * Registry-only delete for organizations NOT on shared projects.
+ * Only available to full-access admins. Deletes only registry data (organization_registry
+ * and related tables), NOT the tenant database.
+ */
+export function useExecuteRegistryOnlyDelete() {
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((s) => s.user?.id ?? "");
+
+  const mutation = useMutation<
+    AuditReport,
+    Error,
+    { organization: OrganizationRegistry; confirmSlug: string }
+  >({
+    mutationFn: ({ organization, confirmSlug }) =>
+      executeRegistryOnlyDelete(organization, confirmSlug, userId),
+    onSuccess: (report) => {
+      saveAuditReport(report);
+
+      const pendingRegistryRows = report.registryCleanup.filter(
+        (r) => r.status === "pending-server-side",
+      ).length;
+      if (report.success && pendingRegistryRows > 0) {
+        toast.warning("Organization removed from registry", {
+          description: `${pendingRegistryRows} registry table(s) still need manual cleanup — see the audit report.`,
+        });
+      } else if (report.success) {
+        toast.success("Organization removed from registry", { description: report.slug });
+      } else {
+        toast.warning("Organization removed from registry with issues", {
+          description: `${report.errors.length} issue(s) recorded — review the audit report.`,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations() });
+      if (report.orgRegistryId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.organization(report.orgRegistryId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizationFeatures(report.orgRegistryId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizationSubscription(report.orgRegistryId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizationSpecialPlan(report.orgRegistryId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizationInvoices(report.orgRegistryId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizationMembers(report.orgRegistryId) });
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.orgDeleteAuditReportsRoot() });
+    },
+    onError: (error: Error) => {
+      toast.error("Could not remove organization from registry", { description: error.message });
+    },
+  });
+
+  return {
+    execute: mutation.mutate,
+    executeAsync: mutation.mutateAsync,
+    isExecuting: mutation.isPending,
+    report: mutation.data ?? null,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
 }

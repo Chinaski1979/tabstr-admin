@@ -3,11 +3,17 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 
-const { mockUseOrgDeleteCapability, mockUseOrgDeleteDryRun, mockUseExecuteOrgDelete } = vi.hoisted(
+const {
+  mockUseOrgDeleteCapability,
+  mockUseOrgDeleteDryRun,
+  mockUseExecuteOrgDelete,
+  mockUseExecuteRegistryOnlyDelete,
+} = vi.hoisted(
   () => ({
     mockUseOrgDeleteCapability: vi.fn(),
     mockUseOrgDeleteDryRun: vi.fn(),
     mockUseExecuteOrgDelete: vi.fn(),
+    mockUseExecuteRegistryOnlyDelete: vi.fn(),
   }),
 );
 
@@ -15,6 +21,7 @@ vi.mock("@/hooks/useOrgDelete", () => ({
   useOrgDeleteCapability: mockUseOrgDeleteCapability,
   useOrgDeleteDryRun: mockUseOrgDeleteDryRun,
   useExecuteOrgDelete: mockUseExecuteOrgDelete,
+  useExecuteRegistryOnlyDelete: mockUseExecuteRegistryOnlyDelete,
 }));
 
 import { DeleteOrganizationDialog } from "../DeleteOrganizationDialog";
@@ -87,13 +94,16 @@ function mockHooks({
   plan = PLAN as DryRunPlan | undefined,
   report = null as AuditReport | null,
   isExecuting = false,
+  isRegistryOnlyMode = false,
 } = {}) {
+  const capability = capabilityEnabled
+    ? { enabled: true, disabledReason: null, projectId: "project-1", liveProbe: "ok" as const, reason: undefined }
+    : isRegistryOnlyMode
+    ? { enabled: false, disabledReason: "not-on-shared-project" as const, reason: "This organization is not on a configured shared project", liveProbe: "skipped" as const }
+    : { enabled: false, disabledReason: "missing-service-key" as const, reason: "Missing VITE_SHARED_PROJECT_2_SERVICE_KEY for this project", liveProbe: "skipped" as const };
+
   mockUseOrgDeleteCapability.mockReturnValue({
-    capability: {
-      enabled: capabilityEnabled,
-      reason: capabilityEnabled ? undefined : "Missing VITE_SHARED_PROJECT_2_SERVICE_KEY for this project",
-      liveProbe: capabilityEnabled ? "ok" : "skipped",
-    },
+    capability,
     isLoading: false,
   });
   mockUseOrgDeleteDryRun.mockReturnValue({
@@ -104,8 +114,16 @@ function mockHooks({
   mockUseExecuteOrgDelete.mockReturnValue({
     execute: vi.fn(),
     executeAsync: vi.fn(),
-    isExecuting,
-    report,
+    isExecuting: isRegistryOnlyMode ? false : isExecuting,
+    report: isRegistryOnlyMode ? null : report,
+    error: null,
+    reset: vi.fn(),
+  });
+  mockUseExecuteRegistryOnlyDelete.mockReturnValue({
+    execute: vi.fn(),
+    executeAsync: vi.fn(),
+    isExecuting: isRegistryOnlyMode ? isExecuting : false,
+    report: isRegistryOnlyMode ? report : null,
     error: null,
     reset: vi.fn(),
   });
@@ -184,5 +202,29 @@ describe("DeleteOrganizationDialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("No row counts were collected.")).toBeInTheDocument();
     expect(screen.getByText("organization_registry")).toBeInTheDocument();
+  });
+
+  it("shows registry-only preview when capability is disabled due to not on shared project", () => {
+    mockHooks({ capabilityEnabled: false, isRegistryOnlyMode: true });
+    renderDialog();
+
+    // Should show registry-only warning
+    expect(screen.getByText(/Registry-only delete mode/i)).toBeInTheDocument();
+    // The warning box text has <strong> around NOT - find at least one element in the amber warning box
+    const matchingElements = screen.getAllByText((content, element) =>
+      element.textContent?.includes("The project database will") &&
+      element.textContent?.includes("NOT") &&
+      element.textContent?.includes("be touched") &&
+      !!element.closest('[class*="bg-amber-50"]')
+    );
+    expect(matchingElements.length).toBeGreaterThan(0);
+    expect(screen.getByText(/Preview — registry tables that will be deleted/i)).toBeInTheDocument();
+
+    // Continue button should be enabled in registry-only mode
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+
+    // Should show registry tables, not SQL statements
+    expect(screen.getByText("organization_registry")).toBeInTheDocument();
+    expect(screen.getByText("organization_features")).toBeInTheDocument();
   });
 });

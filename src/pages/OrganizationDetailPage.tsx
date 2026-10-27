@@ -112,15 +112,17 @@ export default function OrganizationDetailPage() {
         <CardHeader className="gap-1.5">
           <CardTitle className="text-destructive">Danger zone</CardTitle>
           <CardDescription>
-            Permanently delete this organization: its project database rows, its registry entry and
-            its admin users. This cannot be undone.
+            Permanently delete this organization. For organizations on shared projects, this removes
+            its project database rows, its registry entry and its admin users. For organizations not on
+            shared projects, full-access admins can perform a registry-only delete (project database
+            is NOT touched). This cannot be undone.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               {isFullAccess
-                ? "The flow shows a dry-run of everything that will be deleted, requires typing the exact slug and produces a downloadable audit report."
+                ? "The flow shows a dry-run of everything that will be deleted, requires typing the exact slug and produces a downloadable audit report. For organizations not on shared projects, a registry-only delete is available."
                 : "Only full-access admins can delete organizations."}
             </p>
             <DeleteOrganizationButton organization={organization} />

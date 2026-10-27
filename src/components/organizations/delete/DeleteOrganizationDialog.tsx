@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   useExecuteOrgDelete,
+  useExecuteRegistryOnlyDelete,
   useOrgDeleteCapability,
   useOrgDeleteDryRun,
 } from "@/hooks/useOrgDelete";
@@ -42,6 +43,8 @@ const STEP_LABELS: Record<Step, string> = {
 /**
  * Three-step recursive delete: (1) dry-run plan, (2) type the exact slug +
  * acknowledge, (3) progress + audit report.
+ * Supports both full recursive delete (shared project) and registry-only delete
+ * (organizations not on shared projects, full-access admins only).
  */
 export function DeleteOrganizationDialog({
   organization,
@@ -58,7 +61,36 @@ export function DeleteOrganizationDialog({
     organization,
     open && capability.enabled,
   );
-  const { execute, isExecuting, report, error: executeError, reset } = useExecuteOrgDelete();
+
+  // Detect registry-only mode: full-access admin + org not on shared project
+  const isRegistryOnlyMode =
+    !capability.enabled &&
+    capability.disabledReason === "not-on-shared-project";
+
+  // Use the appropriate mutation based on mode
+  const {
+    execute: executeFull,
+    isExecuting: isExecutingFull,
+    report: reportFull,
+    error: executeErrorFull,
+    reset: resetFull,
+  } = useExecuteOrgDelete();
+
+  const {
+    execute: executeRegistryOnly,
+    isExecuting: isExecutingRegistryOnly,
+    report: reportRegistryOnly,
+    error: executeErrorRegistryOnly,
+    reset: resetRegistryOnly,
+  } = useExecuteRegistryOnlyDelete();
+
+  const isExecuting = isRegistryOnlyMode ? isExecutingRegistryOnly : isExecutingFull;
+  const report = isRegistryOnlyMode ? reportRegistryOnly : reportFull;
+  const executeError = isRegistryOnlyMode ? executeErrorRegistryOnly : executeErrorFull;
+  const reset = () => {
+    resetFull();
+    resetRegistryOnly();
+  };
 
   const slug = organization?.organizationSlug ?? "";
   const slugMatches = slugInput === slug && slug.length > 0;
@@ -67,8 +99,27 @@ export function DeleteOrganizationDialog({
     ? plan.counts.reduce((sum, entry) => sum + Math.max(0, entry.count), 0)
     : null;
 
-  // Capability-free skeleton for the disabled state: the SQL and registry plan
-  // come from the pure builders, so no service key (and no counts) is needed.
+  // Registry-only preview plan: shows only registry tables that will be deleted
+  const registryOnlyPreviewPlan = useMemo<DryRunPlan>(
+    () => ({
+      slug,
+      orgRegistryId: "",
+      orgId: "",
+      projectId: "",
+      execSqlPresent: false,
+      counts: [],
+      orgUserIds: [],
+      orgUsers: [],
+      sqlStatements: [],
+      registryPlan: [...REGISTRY_TABLES],
+      errors: [],
+    }),
+    [slug],
+  );
+
+  // Capability-free skeleton for the disabled state (full delete): the SQL and
+  // registry plan come from the pure builders, so no service key (and no counts)
+  // is needed.
   const previewPlan = useMemo<DryRunPlan>(
     () => ({
       slug,
@@ -102,7 +153,11 @@ export function DeleteOrganizationDialog({
   const handleExecute = () => {
     if (!organization || !canExecute) return;
     setStep(3);
-    execute({ organization, confirmSlug: slugInput });
+    if (isRegistryOnlyMode) {
+      executeRegistryOnly({ organization, confirmSlug: slugInput });
+    } else {
+      executeFull({ organization, confirmSlug: slugInput });
+    }
   };
 
   return (
@@ -113,8 +168,9 @@ export function DeleteOrganizationDialog({
             Delete {slug} permanently
           </DialogTitle>
           <DialogDescription>
-            Recursively removes the organization&apos;s data from its project database and its
-            registry entry. This cannot be undone.
+            {isRegistryOnlyMode
+              ? "Removes the organization from the registry only. The project database is NOT touched. This cannot be undone."
+              : "Recursively removes the organization&apos;s data from its project database and its registry entry. This cannot be undone."}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,7 +197,7 @@ export function DeleteOrganizationDialog({
 
         {step === 1 && (
           <div className="flex flex-col gap-3">
-            {!capability.enabled ? (
+            {!capability.enabled && !isRegistryOnlyMode ? (
               <>
                 <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   Deletion is not available for this organization: {capability.reason}
@@ -152,6 +208,23 @@ export function DeleteOrganizationDialog({
                 </p>
                 <DryRunPlanView plan={previewPlan} isLoading={false} />
               </>
+            ) : isRegistryOnlyMode ? (
+              <>
+                <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-50/50 px-3 py-2 text-sm text-amber-900 dark:text-amber-100">
+                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <p className="font-medium">Registry-only delete mode</p>
+                    <p className="text-xs mt-0.5">
+                      This organization is not on a shared project. Only the registry tables listed
+                      below will be deleted. The project database will <strong>NOT</strong> be touched.
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Preview — registry tables that will be deleted (no project database operations):
+                </p>
+                <DryRunPlanView plan={registryOnlyPreviewPlan} isLoading={false} />
+              </>
             ) : (
               <DryRunPlanView plan={plan} isLoading={isLoadingPlan} error={planError} />
             )}
@@ -161,15 +234,25 @@ export function DeleteOrganizationDialog({
         {step === 2 && organization && (
           <div className="flex flex-col gap-4">
             <p className="text-sm">
-              This will permanently delete{" "}
-              {totalRows !== null ? (
-                <span className="font-semibold">
-                  {totalRows.toLocaleString()} rows
-                  {" "}
-                </span>
-              ) : null}
-              from <span className="font-mono text-sm">{slug}</span>&apos;s database (all tabs,
-              sales, products, users and more) plus its registry entry.
+              {isRegistryOnlyMode ? (
+                <>
+                  This will permanently delete the organization from the registry:
+                  <span className="font-mono text-sm ml-1">{slug}</span>
+                  . The project database will <strong>NOT</strong> be touched.
+                </>
+              ) : (
+                <>
+                  This will permanently delete{" "}
+                  {totalRows !== null ? (
+                    <span className="font-semibold">
+                      {totalRows.toLocaleString()} rows
+                      {" "}
+                    </span>
+                  ) : null}
+                  from <span className="font-mono text-sm">{slug}</span>&apos;s database (all tabs,
+                  sales, products, users and more) plus its registry entry.
+                </>
+              )}
             </p>
 
             <div className="flex flex-col gap-1.5">
@@ -193,8 +276,11 @@ export function DeleteOrganizationDialog({
                 checked={acknowledged}
                 onChange={(e) => setAcknowledged(e.target.checked)}
               />
-              I understand this action is irreversible and requires a manual follow-up for some
-              registry tables.
+              {isRegistryOnlyMode ? (
+                "I understand this action is irreversible. The organization will be removed from the registry only."
+              ) : (
+                "I understand this action is irreversible and requires a manual follow-up for some registry tables."
+              )}
             </label>
           </div>
         )}
@@ -205,14 +291,21 @@ export function DeleteOrganizationDialog({
               <div className="flex items-center gap-3 rounded-md border px-3 py-4 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-destructive" />
                 <span>
-                  Deleting <span className="font-mono">{slug}</span> — running cleanup phases and
-                  collecting the audit report…
+                  {isRegistryOnlyMode ? (
+                    <>Removing organization {slug} from registry...</>
+                  ) : (
+                    <>
+                      Deleting <span className="font-mono">{slug}</span> — running cleanup phases and collecting the audit report…
+                    </>
+                  )}
                 </span>
               </div>
             )}
             {!isExecuting && executeError && (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                Deletion failed: {executeError.message}
+                {isRegistryOnlyMode
+                  ? "Registry removal failed: "
+                  : "Deletion failed: "}{executeError.message}
               </div>
             )}
             {!isExecuting && !executeError && report && <AuditReportView report={report} />}
@@ -232,7 +325,11 @@ export function DeleteOrganizationDialog({
               </Button>
               <Button
                 type="button"
-                disabled={!capability.enabled || isLoadingPlan || !plan}
+                disabled={
+                  isRegistryOnlyMode
+                    ? false
+                    : !capability.enabled || isLoadingPlan || !plan
+                }
                 onClick={() => setStep(2)}
                 className="w-full sm:w-auto"
               >
@@ -259,7 +356,7 @@ export function DeleteOrganizationDialog({
                 className="w-full sm:w-auto"
               >
                 {isExecuting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Delete {slug}
+                {isRegistryOnlyMode ? "Remove from registry" : `Delete ${slug}`}
               </Button>
             </>
           )}
