@@ -74,6 +74,11 @@ export default function OrganizationDetailPage() {
                   Suspended
                 </Badge>
               )}
+              {organization.isTest && (
+                <Badge variant="secondary" className="text-violet-700 dark:text-violet-400">
+                  Test
+                </Badge>
+              )}
             </div>
           </Detail>
           <Detail label="Registered">{formatDate(organization.createdAt)}</Detail>

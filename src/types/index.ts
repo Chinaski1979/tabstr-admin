@@ -25,6 +25,8 @@ export interface OrganizationRegistry {
   isActive: boolean;
   /** Soft restriction: login allowed; POS may gate features. Weaker than !isActive. */
   isSuspended: boolean;
+  /** Test orgs are listed separately from real ones. Does not change POS availability by itself. */
+  isTest: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

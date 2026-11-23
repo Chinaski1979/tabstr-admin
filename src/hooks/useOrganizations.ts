@@ -79,3 +79,23 @@ export function useSetOrganizationSuspended() {
 
   return { setSuspended: mutation.mutate, isUpdating: mutation.isPending };
 }
+
+export function useSetOrganizationTest() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: ({ id, isTest }: { id: string; isTest: boolean }) =>
+      organizationsService.setTest(id, isTest),
+    onSuccess: (org) => {
+      toast.success(org.isTest ? "Marked as test organization" : "Moved back to real organizations", {
+        description: org.organizationSlug,
+      });
+      invalidateOrganization(queryClient, org);
+    },
+    onError: (error: Error) => {
+      toast.error("Could not update organization", { description: error.message });
+    },
+  });
+
+  return { setTest: mutation.mutate, isUpdating: mutation.isPending };
+}

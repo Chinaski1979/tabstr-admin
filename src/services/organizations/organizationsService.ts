@@ -9,13 +9,14 @@ function mapRow(row: any): OrganizationRegistry {
     supabaseAnonKey: row.supabase_anon_key,
     isActive: row.is_active ?? false,
     isSuspended: row.is_suspended ?? false,
+    isTest: row.is_test ?? false,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at ?? row.created_at),
   };
 }
 
 const SELECT =
-  "id, organization_slug, supabase_url, supabase_anon_key, is_active, is_suspended, created_at, updated_at";
+  "id, organization_slug, supabase_url, supabase_anon_key, is_active, is_suspended, is_test, created_at, updated_at";
 
 export const organizationsService = {
   async getAll(): Promise<OrganizationRegistry[]> {
@@ -59,6 +60,19 @@ export const organizationsService = {
     const { data, error } = await supabase
       .from("organization_registry")
       .update({ is_suspended: isSuspended })
+      .eq("id", id)
+      .select(SELECT)
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  },
+
+  async setTest(id: string, isTest: boolean): Promise<OrganizationRegistry> {
+    const supabase = getRegistryClient();
+    const { data, error } = await supabase
+      .from("organization_registry")
+      .update({ is_test: isTest })
       .eq("id", id)
       .select(SELECT)
       .single();
