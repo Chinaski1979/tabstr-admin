@@ -30,6 +30,7 @@ const ORG: OrganizationRegistry = {
   supabaseAnonKey: "anon-key",
   isActive: true,
   isSuspended: false,
+  isTest: false,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
