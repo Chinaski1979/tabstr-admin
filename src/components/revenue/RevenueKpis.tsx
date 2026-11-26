@@ -2,18 +2,21 @@ import { Banknote, CreditCard, FileWarning, Layers } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import type { RevenueOverview, RevenuePeriod } from "@/types";
+import type { RevenueOverview, RevenuePeriod, SubscriptionCurrency } from "@/types";
 
 interface RevenueKpisProps {
   overview: RevenueOverview;
   period: RevenuePeriod;
   showFinancialTotals?: boolean;
+  /** The overview must already be scoped to this currency. */
+  currency?: SubscriptionCurrency;
 }
 
 export function RevenueKpis({
   overview,
   period,
   showFinancialTotals = true,
+  currency = "USD",
 }: RevenueKpisProps) {
   const isYearly = period === "yearly";
   const contracted = isYearly ? overview.yearlyNetProjection : overview.contractedNet;
@@ -39,13 +42,13 @@ export function RevenueKpis({
               <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
-              <div className="text-2xl font-bold">{formatCurrency(contracted)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(contracted, currency)}</div>
               <p className="text-xs text-muted-foreground">
                 ex-IVA
                 {isYearly ? " · projection if every special plan stays" : ""}
               </p>
               <p className="text-xs text-muted-foreground">
-                Clients pay {formatCurrency(contractedGross)} with 13% IVA
+                Clients pay {formatCurrency(contractedGross, currency)} with 13% IVA
               </p>
             </CardContent>
           </Card>
@@ -58,11 +61,11 @@ export function RevenueKpis({
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
-              <div className="text-2xl font-bold">{formatCurrency(collected)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(collected, currency)}</div>
               <p className="text-xs text-muted-foreground">paid invoices (card and transfer)</p>
               {failed > 0 ? (
                 <p className="text-xs text-destructive">
-                  {formatCurrency(failed)} failed in this period
+                  {formatCurrency(failed, currency)} failed in this period
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">No failed charges in this period</p>

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { OrganizationSpecialPlan } from "@/types";
+import { DEFAULT_SUBSCRIPTION_CURRENCY, type OrganizationSpecialPlan } from "@/types";
 
 export type FeatureRow = {
   key: string;
@@ -15,6 +15,7 @@ export const specialPlanFormSchema = z.object({
     .refine((value) => !Number.isNaN(Number(value)) && Number(value) >= 0, {
       message: "Price must be 0 or greater",
     }),
+  currency: z.enum(["USD", "CRC"]),
   isActive: z.boolean(),
 });
 
@@ -37,6 +38,7 @@ export function defaultFormValues(plan?: OrganizationSpecialPlan): SpecialPlanFo
   return {
     specialPlanName: plan?.specialPlanName ?? "",
     specialPrice: plan ? String(plan.specialPrice) : "",
+    currency: plan?.currency ?? DEFAULT_SUBSCRIPTION_CURRENCY,
     isActive: plan?.isActive ?? true,
   };
 }
@@ -48,6 +50,7 @@ export function specialPlanInputFromForm(
   return {
     specialPlanName: values.specialPlanName.trim(),
     specialPrice: Number(values.specialPrice),
+    currency: values.currency,
     isActive: values.isActive,
     features: parseFeatureRows(featureRows),
   };

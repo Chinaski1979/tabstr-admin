@@ -32,6 +32,7 @@ const plans: ContractedRevenuePlan[] = [
     organizationSlug: "caravana",
     specialPlanName: "Precio Especial Caravana",
     specialPrice: 54,
+    currency: "USD",
     startedAt: new Date("2026-08-03T18:46:16.000Z"),
     hasPaidInvoice: false,
   },
@@ -40,6 +41,7 @@ const plans: ContractedRevenuePlan[] = [
     organizationSlug: "aura-restaurante",
     specialPlanName: "Early Beta",
     specialPrice: 54,
+    currency: "USD",
     startedAt: new Date("2026-07-03T18:58:45.000Z"),
     hasPaidInvoice: false,
   },
@@ -173,4 +175,32 @@ describe("RevenuePage", () => {
     expect(screen.getByRole("button", { name: "Register payment" })).toBeInTheDocument();
     expect(screen.getAllByText("caravana").length).toBeGreaterThan(0);
   });
+
+  it("splits totals by currency and shows a USD/CRC switch when CRC plans exist", async () => {
+    const user = userEvent.setup();
+    const crcPlan: ContractedRevenuePlan = {
+      organizationRegistryId: "org-tico",
+      organizationSlug: "tico",
+      specialPlanName: "Colones",
+      specialPrice: 25000,
+      currency: "CRC",
+      startedAt: new Date("2026-09-01T00:00:00.000Z"),
+      hasPaidInvoice: false,
+    };
+    mockUseRevenue.mockReturnValue({
+      overview: buildRevenueOverview([...plans, crcPlan], [octoberInvoice], NOW),
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    // USD view: the CRC plan price is not added to the USD contracted total.
+    expect(screen.getByRole("tab", { name: "USD" })).toBeInTheDocument();
+    expect(screen.queryByText("$25,054.00")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "CRC" }));
+
+    expect(screen.getAllByText("₡25,000.00").length).toBeGreaterThan(0);
+  });
 });
+

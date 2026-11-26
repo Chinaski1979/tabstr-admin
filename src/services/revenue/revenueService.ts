@@ -6,6 +6,7 @@ import type {
   CreateManualPaymentInput,
   RevenueOverview,
 } from "@/types";
+import { normalizeSubscriptionCurrency } from "@/types";
 
 const INVOICE_SELECT = `
   id, subscription_id, organization_registry_id, amount, currency, status,
@@ -26,6 +27,7 @@ function mapPlan(row: any): ContractedRevenuePlan {
     organizationSlug: (org?.organization_slug as string) ?? "—",
     specialPlanName: row.special_plan_name,
     specialPrice: Number(row.special_price ?? 0),
+    currency: normalizeSubscriptionCurrency(row.currency),
     startedAt: new Date(row.created_at),
     hasPaidInvoice: false,
   };
@@ -52,7 +54,7 @@ async function fetchActiveSpecialPlans(): Promise<ContractedRevenuePlan[]> {
   const { data, error } = await supabase
     .from("organization_special_plans")
     .select(
-      `id, organization_registry_id, special_plan_name, special_price, is_active, created_at,
+      `id, organization_registry_id, special_plan_name, special_price, currency, is_active, created_at,
        organization_registry!inner(organization_slug)`,
     )
     .eq("is_active", true)
@@ -104,7 +106,7 @@ export const revenueService = {
 
     const { data: plan, error: planError } = await supabase
       .from("organization_special_plans")
-      .select("special_price, is_active")
+      .select("special_price, currency, is_active")
       .eq("organization_registry_id", input.organizationRegistryId)
       .eq("is_active", true)
       .maybeSingle();
@@ -126,7 +128,8 @@ export const revenueService = {
         organization_registry_id: input.organizationRegistryId,
         subscription_id: subscription?.id ?? null,
         amount: Number(plan.special_price),
-        currency: "USD",
+        // Manual payments record the special-plan price in the plan's own currency.
+        currency: normalizeSubscriptionCurrency(plan.currency),
         status: "paid",
         processed_at: processedAtFromPaidOn(input.paidOn),
         payment_method: input.paymentMethod,

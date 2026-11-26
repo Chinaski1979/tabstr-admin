@@ -128,10 +128,28 @@ export function billingIntervalLabel(value: string): string {
   return BILLING_INTERVAL_OPTIONS.find((o) => o.value === value)?.label ?? value;
 }
 
+/**
+ * Currency a subscription plan is charged in through PowerTranz (188 = CRC, 840 = USD).
+ * Registry rows that predate per-plan currency default to USD.
+ */
+export const SUBSCRIPTION_CURRENCY_OPTIONS = [
+  { value: "USD", label: "USD ($)" },
+  { value: "CRC", label: "CRC (₡)" },
+] as const;
+
+export type SubscriptionCurrency = (typeof SUBSCRIPTION_CURRENCY_OPTIONS)[number]["value"];
+
+export const DEFAULT_SUBSCRIPTION_CURRENCY: SubscriptionCurrency = "USD";
+
+export function normalizeSubscriptionCurrency(value: unknown): SubscriptionCurrency {
+  return String(value ?? "").trim().toUpperCase() === "CRC" ? "CRC" : DEFAULT_SUBSCRIPTION_CURRENCY;
+}
+
 export interface SubscriptionPlanPrice {
   id: string;
   billingInterval: BillingInterval;
   planPrice: number;
+  currency: SubscriptionCurrency;
   isActive: boolean;
 }
 
@@ -142,8 +160,10 @@ export interface SubscriptionPlan {
   prices: SubscriptionPlanPrice[];
 }
 
+/** A catalog plan is charged in a single currency; every price row carries it. */
 export type CreateSubscriptionPlanInput = {
   planName: string;
+  currency: SubscriptionCurrency;
   prices: { billingInterval: BillingInterval; planPrice: number }[];
   features?: string[];
   isActive?: boolean;
@@ -151,6 +171,7 @@ export type CreateSubscriptionPlanInput = {
 
 export type UpdateSubscriptionPlanInput = {
   planName: string;
+  currency: SubscriptionCurrency;
   prices: { id?: string; billingInterval: BillingInterval; planPrice: number }[];
   features?: string[];
   isActive?: boolean;
@@ -161,6 +182,7 @@ export interface OrganizationSpecialPlan {
   organizationRegistryId: string;
   specialPlanName: string;
   specialPrice: number;
+  currency: SubscriptionCurrency;
   isActive: boolean;
   features: string[];
 }
@@ -168,6 +190,7 @@ export interface OrganizationSpecialPlan {
 export type CreateOrganizationSpecialPlanInput = {
   specialPlanName: string;
   specialPrice: number;
+  currency: SubscriptionCurrency;
   features?: string[];
   isActive?: boolean;
 };
@@ -175,6 +198,7 @@ export type CreateOrganizationSpecialPlanInput = {
 export type UpdateOrganizationSpecialPlanInput = {
   specialPlanName: string;
   specialPrice: number;
+  currency: SubscriptionCurrency;
   features?: string[];
   isActive?: boolean;
 };
@@ -227,6 +251,7 @@ export interface ContractedRevenuePlan {
   organizationSlug: string;
   specialPlanName: string;
   specialPrice: number;
+  currency: SubscriptionCurrency;
   startedAt: Date;
   hasPaidInvoice: boolean;
 }
@@ -258,6 +283,8 @@ export interface CollectedRevenueMonth {
  * Revenue overview for /revenue.
  * Contracted figures are net of IVA (special_price). Collected figures are cash
  * from subscription_invoices and already include IVA when the card was charged.
+ * Amounts are only meaningful for a single currency: build one overview per
+ * currency (see `filterRevenueByCurrency`), never sum USD and CRC together.
  */
 export interface RevenueOverview {
   contractedNet: number;
@@ -338,13 +365,15 @@ export interface MrrSnapshotOrg {
   organizationRegistryId: string;
   organizationSlug: string;
   specialPrice: number;
+  currency: SubscriptionCurrency;
   isActive: boolean;
   subscriptionStatus: string | null;
 }
 
 export interface BusinessScorecard {
   asOfMonth: string;
-  health: BusinessHealth;
+  /** Live health per currency. USD and CRC amounts are never mixed. */
+  healthByCurrency: Record<SubscriptionCurrency, BusinessHealth>;
   plans: ContractedRevenuePlan[];
   invoices: CollectedRevenueInvoice[];
   closes: BusinessMonthClose[];

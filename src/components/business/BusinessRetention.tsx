@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatRate } from "@/lib/business";
 import { formatMonthLabel } from "@/lib/revenue";
 import { formatCurrency } from "@/lib/utils";
-import type { CustomerValue, RetentionMovement } from "@/types";
+import type { CustomerValue, RetentionMovement, SubscriptionCurrency } from "@/types";
 
 interface BusinessRetentionProps {
   month: string;
@@ -11,6 +11,7 @@ interface BusinessRetentionProps {
   previousClosed: boolean;
   movement: RetentionMovement | null;
   customerValue: CustomerValue;
+  currency?: SubscriptionCurrency;
 }
 
 export function BusinessRetention({
@@ -20,6 +21,7 @@ export function BusinessRetention({
   previousClosed,
   movement,
   customerValue,
+  currency = "USD",
 }: BusinessRetentionProps) {
   return (
     <Card>
@@ -36,11 +38,11 @@ export function BusinessRetention({
         ) : (
           <>
             <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Metric label="Starting MRR" value={formatCurrency(movement.startingMrr)} />
-              <Metric label="New MRR" value={formatCurrency(movement.newMrr)} />
-              <Metric label="Expansion" value={formatCurrency(movement.expansionMrr)} />
-              <Metric label="Contraction" value={formatCurrency(movement.contractionMrr)} />
-              <Metric label="Churned MRR" value={formatCurrency(movement.churnedMrr)} />
+              <Metric label="Starting MRR" value={formatCurrency(movement.startingMrr, currency)} />
+              <Metric label="New MRR" value={formatCurrency(movement.newMrr, currency)} />
+              <Metric label="Expansion" value={formatCurrency(movement.expansionMrr, currency)} />
+              <Metric label="Contraction" value={formatCurrency(movement.contractionMrr, currency)} />
+              <Metric label="Churned MRR" value={formatCurrency(movement.churnedMrr, currency)} />
               <Metric
                 label="Logo churn"
                 value={
@@ -59,7 +61,7 @@ export function BusinessRetention({
               </p>
             ) : (
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">LTV {formatCurrency(customerValue.ltv)}</p>
+                <p className="text-sm font-medium">LTV {formatCurrency(customerValue.ltv, currency)}</p>
                 <p className="text-xs text-muted-foreground">
                   ARPU / average monthly logo churn · {customerValue.churnedLogos} churned logos over{" "}
                   {customerValue.monthsUsed} months

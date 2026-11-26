@@ -12,7 +12,11 @@ export function cn(...inputs: ClassValue[]) {
 export function formatCurrency(amount: number | null | undefined, currency = "USD"): string {
   const value = typeof amount === "number" ? amount : 0;
   try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+    }).format(value);
   } catch {
     return `${currency} ${value.toFixed(2)}`;
   }

@@ -3,23 +3,24 @@ import { AlertTriangle, Banknote, CalendarRange, Percent, UserPlus, Users, Walle
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatRate } from "@/lib/business";
 import { formatCurrency } from "@/lib/utils";
-import type { BusinessHealth } from "@/types";
+import type { BusinessHealth, SubscriptionCurrency } from "@/types";
 
 interface BusinessKpisProps {
   health: BusinessHealth;
+  currency?: SubscriptionCurrency;
 }
 
-export function BusinessKpis({ health }: BusinessKpisProps) {
+export function BusinessKpis({ health, currency = "USD" }: BusinessKpisProps) {
   const cards = [
     {
       label: "Contracted MRR",
-      value: formatCurrency(health.contractedMrr),
+      value: formatCurrency(health.contractedMrr, currency),
       detail: "Active special-plan prices, ex-IVA",
       icon: Banknote,
     },
     {
       label: "ARR projection",
-      value: formatCurrency(health.arrProjection),
+      value: formatCurrency(health.arrProjection, currency),
       detail: "MRR × 12 if every current plan stays",
       icon: CalendarRange,
     },
@@ -31,7 +32,7 @@ export function BusinessKpis({ health }: BusinessKpisProps) {
     },
     {
       label: "ARPU",
-      value: health.arpu == null ? "—" : formatCurrency(health.arpu),
+      value: health.arpu == null ? "—" : formatCurrency(health.arpu, currency),
       detail: "Contracted MRR / active customers",
       icon: Wallet,
     },
@@ -43,7 +44,7 @@ export function BusinessKpis({ health }: BusinessKpisProps) {
     },
     {
       label: "Collected",
-      value: formatCurrency(health.collected),
+      value: formatCurrency(health.collected, currency),
       detail: "Special-plan price. PowerTranz charges are counted without 13% IVA",
       icon: Banknote,
     },

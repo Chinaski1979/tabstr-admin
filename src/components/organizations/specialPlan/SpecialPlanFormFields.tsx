@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { SubscriptionCurrencyField } from "@/components/common/SubscriptionCurrencyField";
+import type { SubscriptionCurrency } from "@/types";
 
 import type { FeatureRow, SpecialPlanFormValues } from "./specialPlanForm";
 
@@ -13,6 +15,8 @@ interface SpecialPlanFormFieldsProps {
   register: UseFormRegister<SpecialPlanFormValues>;
   errors: FieldErrors<SpecialPlanFormValues>;
   isActive: boolean;
+  currency: SubscriptionCurrency;
+  savedCurrency?: SubscriptionCurrency;
   setValue: UseFormSetValue<SpecialPlanFormValues>;
   featureRows: FeatureRow[];
   onUpdateFeature: (key: string, text: string) => void;
@@ -25,6 +29,8 @@ export function SpecialPlanFormFields({
   register,
   errors,
   isActive,
+  currency,
+  savedCurrency,
   setValue,
   featureRows,
   onUpdateFeature,
@@ -44,6 +50,12 @@ export function SpecialPlanFormFields({
           <p className="text-xs text-destructive">{errors.specialPlanName.message}</p>
         )}
       </div>
+      <SubscriptionCurrencyField
+        id={`${formId}-currency`}
+        value={currency}
+        savedCurrency={savedCurrency}
+        onChange={(value) => setValue("currency", value)}
+      />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${formId}-specialPrice`}>Price</Label>
         <Input

@@ -168,7 +168,7 @@ export function RegisterPaymentDialog({
           <p className="text-sm text-muted-foreground">
             Amount:{" "}
             {selectedPlan
-              ? `${formatCurrency(selectedPlan.specialPrice)} (from the special plan, ex-IVA)`
+              ? `${formatCurrency(selectedPlan.specialPrice, selectedPlan.currency)} (from the special plan, ex-IVA)`
               : "choose an organization"}
           </p>
 

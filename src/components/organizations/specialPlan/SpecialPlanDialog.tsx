@@ -62,6 +62,7 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
   });
 
   const isActive = watch("isActive");
+  const currency = watch("currency");
 
   const resetForm = useCallback(() => {
     reset(defaultFormValues(plan));
@@ -131,6 +132,8 @@ export function SpecialPlanDialog({ orgRegistryId, plan, open, onOpenChange }: S
               register={register}
               errors={errors}
               isActive={isActive}
+              currency={currency}
+              savedCurrency={plan?.currency}
               setValue={setValue}
               featureRows={featureRows}
               onUpdateFeature={updateFeature}

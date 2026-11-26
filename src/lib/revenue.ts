@@ -1,9 +1,10 @@
-import { IVA_RATE } from "@/types";
+import { IVA_RATE, SUBSCRIPTION_CURRENCY_OPTIONS, normalizeSubscriptionCurrency } from "@/types";
 import type {
   CollectedRevenueInvoice,
   CollectedRevenueMonth,
   ContractedRevenuePlan,
   RevenueOverview,
+  SubscriptionCurrency,
 } from "@/types";
 
 export function roundCurrency(value: number): number {
@@ -13,6 +14,34 @@ export function roundCurrency(value: number): number {
 /** IVA on top of a net special_price. Used only for the "clients pay" subtitle. */
 export function applyIva(net: number): number {
   return roundCurrency(net * (1 + IVA_RATE));
+}
+
+/** Invoices without a currency predate CRC support and are USD. */
+export function invoiceCurrency(invoice: { currency: string | null }): SubscriptionCurrency {
+  return normalizeSubscriptionCurrency(invoice.currency);
+}
+
+/** Keeps only the plans and invoices in one currency so totals never mix USD and CRC. */
+export function filterRevenueByCurrency<
+  P extends { currency: SubscriptionCurrency },
+  I extends { currency: string | null },
+>(plans: P[], invoices: I[], currency: SubscriptionCurrency): { plans: P[]; invoices: I[] } {
+  return {
+    plans: plans.filter((plan) => plan.currency === currency),
+    invoices: invoices.filter((invoice) => invoiceCurrency(invoice) === currency),
+  };
+}
+
+/** Currencies that have at least one plan or invoice, in display order (USD first). */
+export function currenciesInUse(
+  plans: { currency: SubscriptionCurrency }[],
+  invoices: { currency: string | null }[],
+): SubscriptionCurrency[] {
+  const used = new Set<SubscriptionCurrency>([
+    ...plans.map((plan) => plan.currency),
+    ...invoices.map(invoiceCurrency),
+  ]);
+  return SUBSCRIPTION_CURRENCY_OPTIONS.map((option) => option.value).filter((value) => used.has(value));
 }
 
 export function invoiceOccurredAt(invoice: CollectedRevenueInvoice): Date {
