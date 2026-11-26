@@ -323,6 +323,7 @@ create table if not exists public.business_mrr_snapshots (
   organization_registry_id uuid not null references public.organization_registry(id) on delete cascade,
   organization_slug text not null,
   special_price numeric(12, 2) not null,
+  currency text not null default 'USD' check (currency in ('USD', 'CRC')),
   is_active boolean not null,
   subscription_status text,
   created_at timestamptz not null default now(),
@@ -332,6 +333,10 @@ create table if not exists public.business_mrr_snapshots (
 
 create index if not exists business_mrr_snapshots_month_idx
   on public.business_mrr_snapshots (month);
+
+-- Existing installs: snapshot currency (USD | CRC). See tabstr src/services/sql/registry/subscription_currency.sql.
+alter table public.business_mrr_snapshots
+  add column if not exists currency text not null default 'USD';
 
 alter table public.business_month_closes enable row level security;
 alter table public.business_mrr_snapshots enable row level security;

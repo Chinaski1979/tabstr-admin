@@ -91,6 +91,7 @@ export function OrganizationSubscriptionCard({
         organizationSlug,
         specialPlanName: specialPlan.specialPlanName,
         specialPrice: specialPlan.specialPrice,
+        currency: specialPlan.currency,
         startedAt: new Date(),
         hasPaidInvoice: invoices.some((invoice) => invoice.status.toLowerCase() === "paid"),
       },

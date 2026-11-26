@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-import { billingIntervalLabel, type BillingInterval, type SubscriptionPlan } from "@/types";
+import {
+  DEFAULT_SUBSCRIPTION_CURRENCY,
+  billingIntervalLabel,
+  type BillingInterval,
+  type SubscriptionCurrency,
+  type SubscriptionPlan,
+} from "@/types";
 
 export type PriceRow = {
   key: string;
@@ -22,6 +28,7 @@ export type PlanPriceInput = {
 
 export const planFormSchema = z.object({
   planName: z.string().min(1, "Plan name is required"),
+  currency: z.enum(["USD", "CRC"]),
   isActive: z.boolean(),
 });
 
@@ -52,6 +59,11 @@ export function featureRowsFromPlan(plan?: SubscriptionPlan): FeatureRow[] {
 
 export function parseFeatureRows(rows: FeatureRow[]): string[] {
   return rows.map((row) => row.text.trim()).filter(Boolean);
+}
+
+/** A catalog plan is charged in one currency; legacy plans without prices default to USD. */
+export function planCurrency(plan?: SubscriptionPlan): SubscriptionCurrency {
+  return plan?.prices[0]?.currency ?? DEFAULT_SUBSCRIPTION_CURRENCY;
 }
 
 export function defaultIsActive(plan?: SubscriptionPlan): boolean {

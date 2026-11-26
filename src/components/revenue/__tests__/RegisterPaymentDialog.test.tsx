@@ -22,6 +22,7 @@ const plans: ContractedRevenuePlan[] = [
     organizationSlug: "aura-restaurante",
     specialPlanName: "Early Beta",
     specialPrice: 54,
+    currency: "USD",
     startedAt: new Date("2026-07-03T18:58:45.000Z"),
     hasPaidInvoice: false,
   },

@@ -12,8 +12,15 @@ import { RevenueUnbilledNotice } from "@/components/revenue/RevenueUnbilledNotic
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useRevenue, useRevenueInvoices } from "@/hooks/useRevenue";
-import { invoiceMonthOptions, isRevenueEmpty, monthKey } from "@/lib/revenue";
-import type { RevenuePeriod } from "@/types";
+import {
+  buildRevenueOverview,
+  currenciesInUse,
+  filterRevenueByCurrency,
+  invoiceMonthOptions,
+  isRevenueEmpty,
+  monthKey,
+} from "@/lib/revenue";
+import type { RevenuePeriod, SubscriptionCurrency } from "@/types";
 
 export default function RevenuePage() {
   const navigate = useNavigate();
@@ -21,6 +28,17 @@ export default function RevenuePage() {
   const { overview, isLoading, error } = useRevenue();
   const [period, setPeriod] = useState<RevenuePeriod>("monthly");
   const [month, setMonth] = useState(() => monthKey(new Date()));
+  const [selectedCurrency, setCurrency] = useState<SubscriptionCurrency>("USD");
+  const currencies = overview ? currenciesInUse(overview.plans, overview.invoices) : [];
+  const currency: SubscriptionCurrency =
+    currencies.length === 0 || currencies.includes(selectedCurrency) ? selectedCurrency : currencies[0];
+  // Totals never mix USD and CRC: KPIs and monthly buckets are rebuilt for one currency.
+  const scopedRevenue = overview
+    ? filterRevenueByCurrency(overview.plans, overview.invoices, currency)
+    : null;
+  const currencyOverview = scopedRevenue
+    ? buildRevenueOverview(scopedRevenue.plans, scopedRevenue.invoices)
+    : null;
   const {
     invoices,
     isLoading: invoicesLoading,
@@ -42,6 +60,17 @@ export default function RevenuePage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <RegisterPaymentDialog plans={plans} invoices={overview?.invoices ?? []} />
+            {currencies.length > 1 ? (
+              <Tabs value={currency} onValueChange={(value) => setCurrency(value as SubscriptionCurrency)}>
+                <TabsList>
+                  {currencies.map((value) => (
+                    <TabsTrigger key={value} value={value}>
+                      {value}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            ) : null}
             {isFullAccess ? (
               <Tabs value={period} onValueChange={(value) => setPeriod(value as RevenuePeriod)}>
                 <TabsList>
@@ -58,7 +87,7 @@ export default function RevenuePage() {
         <LoadingState />
       ) : error ? (
         <ErrorState error={error} />
-      ) : !overview || isRevenueEmpty(overview) ? (
+      ) : !overview || !currencyOverview || isRevenueEmpty(overview) ? (
         <EmptyState
           title="No revenue yet"
           description="Create special plans and paid invoices will show contracted and collected totals here."
@@ -66,12 +95,13 @@ export default function RevenuePage() {
       ) : (
         <>
           <RevenueKpis
-            overview={overview}
+            overview={currencyOverview}
             period={period}
             showFinancialTotals={isFullAccess}
+            currency={currency}
           />
           <RevenueUnbilledNotice plans={overview.plans} />
-          <RevenueCollectedByMonth months={overview.byMonth} />
+          <RevenueCollectedByMonth months={currencyOverview.byMonth} currency={currency} />
           <RevenueSpecialPlansTable
             plans={overview.plans}
             onSelectOrganization={handleSelectOrganization}

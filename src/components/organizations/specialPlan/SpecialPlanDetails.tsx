@@ -13,7 +13,7 @@ export function SpecialPlanDetails({ plan }: SpecialPlanDetailsProps) {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Detail label="Plan name" value={plan.specialPlanName} />
-        <Detail label="Price" value={formatCurrency(plan.specialPrice)} />
+        <Detail label="Price" value={formatCurrency(plan.specialPrice, plan.currency)} />
         <Detail
           label="Status"
           value={

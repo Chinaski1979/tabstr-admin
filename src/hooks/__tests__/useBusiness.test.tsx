@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { BusinessScorecard } from "@/types";
+import type { BusinessHealth, BusinessScorecard } from "@/types";
 
 const { mockGetScorecard } = vi.hoisted(() => ({
   mockGetScorecard: vi.fn(),
@@ -24,9 +24,8 @@ function createWrapper() {
   };
 }
 
-const scorecard: BusinessScorecard = {
-  asOfMonth: "2026-10",
-  health: {
+function emptyHealth(): BusinessHealth {
+  return {
     month: "2026-10",
     contractedMrr: 0,
     arrProjection: 0,
@@ -37,6 +36,14 @@ const scorecard: BusinessScorecard = {
     paidCustomers: 0,
     collectionRate: null,
     atRisk: [],
+  };
+}
+
+const scorecard: BusinessScorecard = {
+  asOfMonth: "2026-10",
+  healthByCurrency: {
+    USD: emptyHealth(),
+    CRC: emptyHealth(),
   },
   plans: [],
   invoices: [],

@@ -39,6 +39,7 @@ import {
   newPriceRow,
   parseFeatureRows,
   parsePriceRows,
+  planCurrency,
   planFormSchema,
   priceRowsFromPlan,
   type FeatureRow,
@@ -83,14 +84,23 @@ export function SubscriptionPlanDialog({
     formState: { errors },
   } = useForm<PlanFormValues>({
     resolver: zodResolver(planFormSchema),
-    defaultValues: { planName: plan?.planName ?? "", isActive: defaultIsActive(plan) },
+    defaultValues: {
+      planName: plan?.planName ?? "",
+      currency: planCurrency(plan),
+      isActive: defaultIsActive(plan),
+    },
   });
 
   const isActive = watch("isActive");
+  const currency = watch("currency");
   const canAddRow = priceRows.length < BILLING_INTERVAL_OPTIONS.length;
 
   const resetForm = useCallback(() => {
-    reset({ planName: plan?.planName ?? "", isActive: defaultIsActive(plan) });
+    reset({
+      planName: plan?.planName ?? "",
+      currency: planCurrency(plan),
+      isActive: defaultIsActive(plan),
+    });
     setPriceRows(plan ? priceRowsFromPlan(plan) : [newPriceRow()]);
     setFeatureRows(featureRowsFromPlan(plan));
     setIntervalsError(null);
@@ -139,6 +149,7 @@ export function SubscriptionPlanDialog({
           planId: plan.id,
           input: {
             planName: values.planName.trim(),
+            currency: values.currency,
             prices: parsed.prices,
             features,
             isActive: values.isActive,
@@ -147,6 +158,7 @@ export function SubscriptionPlanDialog({
       } else {
         await createSubscriptionPlan({
           planName: values.planName.trim(),
+          currency: values.currency,
           prices: parsed.prices,
           features,
           isActive: values.isActive,
@@ -196,6 +208,8 @@ export function SubscriptionPlanDialog({
               register={register}
               errors={errors}
               isActive={isActive}
+              currency={currency}
+              savedCurrency={isEdit ? planCurrency(plan) : undefined}
               setValue={setValue}
               priceRows={priceRows}
               intervalsError={intervalsError}

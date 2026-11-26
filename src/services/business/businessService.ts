@@ -1,6 +1,6 @@
 import { getRegistryClient } from "@/integrations/supabase/client";
 import { buildBusinessHealth } from "@/lib/business";
-import { monthKey } from "@/lib/revenue";
+import { filterRevenueByCurrency, monthKey } from "@/lib/revenue";
 import { revenueService } from "@/services/revenue/revenueService";
 import { subscriptionsService } from "@/services/subscriptions/subscriptionsService";
 import type {
@@ -10,12 +10,14 @@ import type {
   CloseBusinessMonthInput,
   MrrSnapshotOrg,
 } from "@/types";
+import { SUBSCRIPTION_CURRENCY_OPTIONS, normalizeSubscriptionCurrency } from "@/types";
+import type { BusinessHealth, SubscriptionCurrency } from "@/types";
 
 const CLOSE_SELECT =
   "id, month, cash_on_hand, payroll, infrastructure, other_operating, sales_marketing, note, closed_at, updated_at";
 
 const SNAPSHOT_SELECT =
-  "month, organization_registry_id, organization_slug, special_price, is_active, subscription_status";
+  "month, organization_registry_id, organization_slug, special_price, currency, is_active, subscription_status";
 
 function mapClose(row: any): BusinessMonthClose {
   return {
@@ -38,6 +40,7 @@ function mapSnapshot(row: any): MrrSnapshotOrg {
     organizationRegistryId: row.organization_registry_id,
     organizationSlug: row.organization_slug,
     specialPrice: Number(row.special_price ?? 0),
+    currency: normalizeSubscriptionCurrency(row.currency),
     isActive: Boolean(row.is_active),
     subscriptionStatus: row.subscription_status ?? null,
   };
@@ -112,21 +115,41 @@ export const businessService = {
       fetchSnapshots(),
     ]);
 
-    const subscriptionRefs: BusinessSubscriptionRef[] = subscriptions.map((subscription) => ({
-      organizationRegistryId: subscription.organizationRegistryId,
-      organizationSlug: subscription.organizationSlug,
-      status: subscription.status,
-      createdAt: subscription.createdAt,
+    // Each org belongs to one currency for health: its active special plan's currency
+    // (USD when it has no active plan).
+    const planCurrencyByOrg = new Map(
+      overview.plans.map((plan) => [plan.organizationRegistryId, plan.currency] as const),
+    );
+    const subscriptionRefs = subscriptions.map((subscription) => ({
+      currency: planCurrencyByOrg.get(subscription.organizationRegistryId) ?? "USD",
+      ref: {
+        organizationRegistryId: subscription.organizationRegistryId,
+        organizationSlug: subscription.organizationSlug,
+        status: subscription.status,
+        createdAt: subscription.createdAt,
+      } satisfies BusinessSubscriptionRef,
     }));
+
+    const healthByCurrency = Object.fromEntries(
+      SUBSCRIPTION_CURRENCY_OPTIONS.map(({ value: currency }) => {
+        const scoped = filterRevenueByCurrency(overview.plans, overview.invoices, currency);
+        return [
+          currency,
+          buildBusinessHealth({
+            plans: scoped.plans,
+            invoices: scoped.invoices,
+            subscriptions: subscriptionRefs
+              .filter((entry) => entry.currency === currency)
+              .map((entry) => entry.ref),
+            month,
+          }),
+        ];
+      }),
+    ) as Record<SubscriptionCurrency, BusinessHealth>;
 
     return {
       asOfMonth: month,
-      health: buildBusinessHealth({
-        plans: overview.plans,
-        invoices: overview.invoices,
-        subscriptions: subscriptionRefs,
-        month,
-      }),
+      healthByCurrency,
       plans: overview.plans,
       invoices: overview.invoices,
       closes,
@@ -143,7 +166,7 @@ export const businessService = {
       supabase
         .from("organization_special_plans")
         .select(
-          "organization_registry_id, special_price, is_active, organization_registry!inner(organization_slug)",
+          "organization_registry_id, special_price, currency, is_active, organization_registry!inner(organization_slug)",
         ),
       subscriptionsService.getAllWithOrg(),
     ]);
@@ -172,6 +195,7 @@ export const businessService = {
         organization_registry_id: row.organization_registry_id,
         organization_slug: (org?.organization_slug as string) ?? "—",
         special_price: Number(row.special_price ?? 0),
+        currency: normalizeSubscriptionCurrency(row.currency),
         is_active: Boolean(row.is_active),
         subscription_status: latestStatus.get(row.organization_registry_id) ?? null,
       };

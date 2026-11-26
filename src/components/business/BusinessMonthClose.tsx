@@ -28,6 +28,11 @@ interface BusinessMonthCloseProps {
   plans: ContractedRevenuePlan[];
   invoices: CollectedRevenueInvoice[];
   closes: BusinessMonthCloseRow[];
+  /**
+   * Collected this month in CRC. Burn compares USD expenses with USD collections only, since
+   * there is no FX conversion; CRC cash is shown separately so it is not silently dropped.
+   */
+  crcCollected?: number;
   isClosing: boolean;
   onMonthChange: (month: string) => void;
   onCloseMonth: (input: CloseBusinessMonthInput) => Promise<void>;
@@ -46,6 +51,7 @@ export function BusinessMonthClose({
   plans,
   invoices,
   closes,
+  crcCollected = 0,
   isClosing,
   onMonthChange,
   onCloseMonth,
@@ -155,6 +161,12 @@ export function BusinessMonthClose({
               value={burn.blendedCac == null ? "—" : formatCurrency(burn.blendedCac)}
             />
           </dl>
+          {crcCollected > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Amounts are in USD. {formatCurrency(crcCollected, "CRC")} collected in CRC this month is
+              not included in burn (no exchange-rate conversion).
+            </p>
+          )}
 
           <div>
             <Button type="submit" disabled={isClosing}>

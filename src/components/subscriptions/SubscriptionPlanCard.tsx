@@ -35,7 +35,7 @@ export function SubscriptionPlanCard({ plan }: SubscriptionPlanCardProps) {
             <li key={price.id}>
               {billingIntervalLabel(price.billingInterval)}:{" "}
               <span className="font-medium text-foreground">
-                {formatCurrency(price.planPrice)}
+                {formatCurrency(price.planPrice, price.currency)}
               </span>
               {!price.isActive && (
                 <span className="ml-1 text-xs text-muted-foreground">(inactive)</span>

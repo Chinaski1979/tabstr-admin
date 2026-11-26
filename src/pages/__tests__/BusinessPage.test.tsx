@@ -23,6 +23,7 @@ const plans: ContractedRevenuePlan[] = [
     organizationSlug: "acme",
     specialPlanName: "Special",
     specialPrice: 54,
+    currency: "USD",
     startedAt: new Date("2026-08-03T00:00:00.000Z"),
     hasPaidInvoice: true,
   },
@@ -31,6 +32,7 @@ const plans: ContractedRevenuePlan[] = [
     organizationSlug: "beta",
     specialPlanName: "Special",
     specialPrice: 66,
+    currency: "USD",
     startedAt: new Date("2026-10-02T00:00:00.000Z"),
     hasPaidInvoice: false,
   },
@@ -54,7 +56,10 @@ const invoices: CollectedRevenueInvoice[] = [
 function scorecard(): BusinessScorecard {
   return {
     asOfMonth: "2026-10",
-    health: buildBusinessHealth({ plans, invoices, subscriptions: [], month: "2026-10" }),
+    healthByCurrency: {
+      USD: buildBusinessHealth({ plans, invoices, subscriptions: [], month: "2026-10" }),
+      CRC: buildBusinessHealth({ plans: [], invoices: [], subscriptions: [], month: "2026-10" }),
+    },
     plans,
     invoices,
     closes: [],

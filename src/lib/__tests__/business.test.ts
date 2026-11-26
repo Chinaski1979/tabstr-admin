@@ -24,6 +24,7 @@ function plan(overrides: Partial<ContractedRevenuePlan> = {}): ContractedRevenue
     organizationSlug: "acme",
     specialPlanName: "Special",
     specialPrice: 54,
+    currency: "USD",
     startedAt: new Date("2026-08-03T00:00:00.000Z"),
     hasPaidInvoice: false,
     ...overrides,
@@ -72,6 +73,7 @@ function snap(
     organizationRegistryId,
     organizationSlug: organizationRegistryId,
     specialPrice,
+    currency: "USD",
     isActive,
     subscriptionStatus: "active",
   };
@@ -101,6 +103,7 @@ describe("buildBusinessHealth", () => {
       organizationRegistryId: "org-2",
       organizationSlug: "beta",
       specialPrice: 66,
+      currency: "USD",
       startedAt: new Date("2026-10-02T00:00:00.000Z"),
       hasPaidInvoice: false,
     }),

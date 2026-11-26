@@ -9,6 +9,7 @@ import type {
   UpdateOrganizationSpecialPlanInput,
   UpdateSubscriptionPlanInput,
 } from "@/types";
+import { normalizeSubscriptionCurrency } from "@/types";
 
 function firstEmbed(value: unknown): Record<string, unknown> | null {
   if (Array.isArray(value)) return (value[0] as Record<string, unknown>) ?? null;
@@ -29,6 +30,7 @@ function mapPlan(row: any): SubscriptionPlan {
       id: p.id,
       billingInterval: p.billing_interval,
       planPrice: Number(p.plan_price ?? 0),
+      currency: normalizeSubscriptionCurrency(p.currency),
       isActive: p.is_active ?? false,
     })),
   };
@@ -62,6 +64,7 @@ function mapSpecialPlan(row: any): OrganizationSpecialPlan {
     organizationRegistryId: row.organization_registry_id,
     specialPlanName: row.special_plan_name,
     specialPrice: Number(row.special_price ?? 0),
+    currency: normalizeSubscriptionCurrency(row.currency),
     isActive: row.is_active ?? false,
     features: mapFeatures(row.features ?? []),
   };
@@ -103,10 +106,11 @@ export const subscriptionsService = {
           plan_id: planRow.id,
           billing_interval: price.billingInterval,
           plan_price: price.planPrice,
+          currency: input.currency,
           is_active: input.isActive ?? true,
         })),
       )
-      .select("billing_interval, plan_price, is_active");
+      .select("billing_interval, plan_price, currency, is_active");
 
     if (priceError) {
       await supabase.from("subscription_plans").delete().eq("id", planRow.id);
@@ -155,6 +159,7 @@ export const subscriptionsService = {
           .update({
             billing_interval: price.billingInterval,
             plan_price: price.planPrice,
+            currency: input.currency,
             is_active: isActive,
           })
           .eq("id", price.id);
@@ -164,6 +169,7 @@ export const subscriptionsService = {
           plan_id: planId,
           billing_interval: price.billingInterval,
           plan_price: price.planPrice,
+          currency: input.currency,
           is_active: isActive,
         });
         if (error) throw error;
@@ -172,7 +178,7 @@ export const subscriptionsService = {
 
     const { data: priceRows, error: priceError } = await supabase
       .from("subscription_plan_prices")
-      .select("id, billing_interval, plan_price, is_active")
+      .select("id, billing_interval, plan_price, currency, is_active")
       .eq("plan_id", planId);
 
     if (priceError) throw priceError;
@@ -198,7 +204,7 @@ export const subscriptionsService = {
     const { data, error } = await supabase
       .from("subscription_plans")
       .select(
-        "id, plan_name, features, subscription_plan_prices(id, billing_interval, plan_price, is_active)",
+        "id, plan_name, features, subscription_plan_prices(id, billing_interval, plan_price, currency, is_active)",
       )
       .order("plan_name");
 
@@ -210,7 +216,7 @@ export const subscriptionsService = {
     const supabase = getRegistryClient();
     const { data, error } = await supabase
       .from("organization_special_plans")
-      .select("id, organization_registry_id, special_plan_name, special_price, is_active, features")
+      .select("id, organization_registry_id, special_plan_name, special_price, currency, is_active, features")
       .eq("organization_registry_id", orgRegistryId)
       .maybeSingle();
 
@@ -229,10 +235,11 @@ export const subscriptionsService = {
         organization_registry_id: orgRegistryId,
         special_plan_name: input.specialPlanName.trim(),
         special_price: input.specialPrice,
+        currency: input.currency,
         is_active: input.isActive ?? true,
         features: input.features ?? [],
       })
-      .select("id, organization_registry_id, special_plan_name, special_price, is_active, features")
+      .select("id, organization_registry_id, special_plan_name, special_price, currency, is_active, features")
       .single();
 
     if (error) throw error;
@@ -249,11 +256,12 @@ export const subscriptionsService = {
       .update({
         special_plan_name: input.specialPlanName.trim(),
         special_price: input.specialPrice,
+        currency: input.currency,
         is_active: input.isActive ?? true,
         features: input.features ?? [],
       })
       .eq("id", specialPlanId)
-      .select("id, organization_registry_id, special_plan_name, special_price, is_active, features")
+      .select("id, organization_registry_id, special_plan_name, special_price, currency, is_active, features")
       .single();
 
     if (error) throw error;

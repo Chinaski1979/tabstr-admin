@@ -12,7 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BILLING_INTERVAL_OPTIONS, type BillingInterval } from "@/types";
+import { SubscriptionCurrencyField } from "@/components/common/SubscriptionCurrencyField";
+import {
+  BILLING_INTERVAL_OPTIONS,
+  type BillingInterval,
+  type SubscriptionCurrency,
+} from "@/types";
 
 import type { FeatureRow, PlanFormValues, PriceRow } from "./subscriptionPlanForm";
 
@@ -23,6 +28,8 @@ interface SubscriptionPlanFormFieldsProps {
   register: UseFormRegister<PlanFormValues>;
   errors: FieldErrors<PlanFormValues>;
   isActive: boolean;
+  currency: SubscriptionCurrency;
+  savedCurrency?: SubscriptionCurrency;
   setValue: UseFormSetValue<PlanFormValues>;
   priceRows: PriceRow[];
   intervalsError: string | null;
@@ -42,6 +49,8 @@ export function SubscriptionPlanFormFields({
   register,
   errors,
   isActive,
+  currency,
+  savedCurrency,
   setValue,
   priceRows,
   intervalsError,
@@ -64,6 +73,13 @@ export function SubscriptionPlanFormFields({
           <p className="text-xs text-destructive">{errors.planName.message}</p>
         )}
       </div>
+
+      <SubscriptionCurrencyField
+        id={`${formId}-currency`}
+        value={currency}
+        savedCurrency={savedCurrency}
+        onChange={(value) => setValue("currency", value)}
+      />
 
       <div className="flex flex-col gap-2">
         <Label>Billing intervals</Label>

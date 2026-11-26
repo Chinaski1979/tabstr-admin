@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   applyIva,
   buildRevenueOverview,
+  currenciesInUse,
+  filterRevenueByCurrency,
   formatMonthLabel,
+  invoiceCurrency,
   hasPaidInvoiceInMonth,
   invoiceMonthOptions,
   isRevenueEmpty,
@@ -21,6 +24,7 @@ function plan(overrides: Partial<ContractedRevenuePlan> = {}): ContractedRevenue
     organizationSlug: "acme",
     specialPlanName: "Special",
     specialPrice: 54,
+    currency: "USD",
     startedAt: new Date("2026-08-03T00:00:00.000Z"),
     hasPaidInvoice: false,
     ...overrides,
@@ -200,5 +204,44 @@ describe("manual payment helpers", () => {
     expect(after.unbilledPlanCount).toBe(0);
     expect(after.collectedThisMonth).toBe(specialPrice);
     expect(after.plans[0].hasPaidInvoice).toBe(true);
+  });
+});
+
+describe("currency scoping", () => {
+  it("treats invoices without a currency as USD (legacy rows)", () => {
+    expect(invoiceCurrency({ currency: null })).toBe("USD");
+    expect(invoiceCurrency({ currency: "usd" })).toBe("USD");
+    expect(invoiceCurrency({ currency: "CRC" })).toBe("CRC");
+  });
+
+  it("never mixes USD and CRC amounts in one overview", () => {
+    const plans = [
+      plan({ organizationRegistryId: "org-usd", specialPrice: 54, currency: "USD" }),
+      plan({ organizationRegistryId: "org-crc", specialPrice: 25000, currency: "CRC" }),
+    ];
+    const invoices = [
+      invoice({ id: "usd", organizationRegistryId: "org-usd", amount: 61.02, currency: "USD", processedAt: "2026-10-04T12:00:00.000Z" }),
+      invoice({ id: "legacy", organizationRegistryId: "org-usd", amount: 10, currency: null, processedAt: "2026-10-05T12:00:00.000Z" }),
+      invoice({ id: "crc", organizationRegistryId: "org-crc", amount: 28250, currency: "CRC", processedAt: "2026-10-06T12:00:00.000Z" }),
+    ];
+
+    const usd = filterRevenueByCurrency(plans, invoices, "USD");
+    const crc = filterRevenueByCurrency(plans, invoices, "CRC");
+    const usdOverview = buildRevenueOverview(usd.plans, usd.invoices, NOW);
+    const crcOverview = buildRevenueOverview(crc.plans, crc.invoices, NOW);
+
+    expect(usdOverview.contractedNet).toBe(54);
+    expect(usdOverview.collectedThisMonth).toBe(71.02);
+    expect(crcOverview.contractedNet).toBe(25000);
+    expect(crcOverview.collectedThisMonth).toBe(28250);
+  });
+
+  it("lists currencies in use, USD first", () => {
+    expect(currenciesInUse([], [])).toEqual([]);
+    expect(currenciesInUse([plan({ currency: "CRC" })], [invoice({ currency: null })])).toEqual([
+      "USD",
+      "CRC",
+    ]);
+    expect(currenciesInUse([plan({ currency: "CRC" })], [])).toEqual(["CRC"]);
   });
 });

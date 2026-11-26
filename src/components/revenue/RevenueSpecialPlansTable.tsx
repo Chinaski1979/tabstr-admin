@@ -58,9 +58,9 @@ export function RevenueSpecialPlansTable({
                 >
                   <TableCell className="font-medium">{plan.organizationSlug}</TableCell>
                   <TableCell>{plan.specialPlanName}</TableCell>
-                  <TableCell>{formatCurrency(plan.specialPrice)}</TableCell>
+                  <TableCell>{formatCurrency(plan.specialPrice, plan.currency)}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatCurrency(applyIva(plan.specialPrice))}
+                    {formatCurrency(applyIva(plan.specialPrice), plan.currency)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{formatDate(plan.startedAt)}</TableCell>
                   <TableCell>

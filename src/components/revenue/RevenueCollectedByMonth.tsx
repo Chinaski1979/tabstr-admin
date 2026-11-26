@@ -10,13 +10,15 @@ import {
 import { EmptyState } from "@/components/common/StateViews";
 import { formatMonthLabel } from "@/lib/revenue";
 import { formatCurrency } from "@/lib/utils";
-import type { CollectedRevenueMonth } from "@/types";
+import type { CollectedRevenueMonth, SubscriptionCurrency } from "@/types";
 
 interface RevenueCollectedByMonthProps {
   months: CollectedRevenueMonth[];
+  /** The months must already be scoped to this currency. */
+  currency?: SubscriptionCurrency;
 }
 
-export function RevenueCollectedByMonth({ months }: RevenueCollectedByMonthProps) {
+export function RevenueCollectedByMonth({ months, currency = "USD" }: RevenueCollectedByMonthProps) {
   return (
     <Card>
       <CardHeader>
@@ -47,10 +49,10 @@ export function RevenueCollectedByMonth({ months }: RevenueCollectedByMonthProps
               {months.map((row) => (
                 <TableRow key={row.month}>
                   <TableCell className="font-medium">{formatMonthLabel(row.month)}</TableCell>
-                  <TableCell>{formatCurrency(row.paidTotal)}</TableCell>
+                  <TableCell>{formatCurrency(row.paidTotal, currency)}</TableCell>
                   <TableCell className="text-muted-foreground">{row.paidCount}</TableCell>
                   <TableCell className={row.failedTotal > 0 ? "text-destructive" : undefined}>
-                    {formatCurrency(row.failedTotal)}
+                    {formatCurrency(row.failedTotal, currency)}
                   </TableCell>
                   <TableCell className="text-muted-foreground">{row.failedCount}</TableCell>
                 </TableRow>
